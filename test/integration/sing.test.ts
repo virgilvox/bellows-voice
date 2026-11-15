@@ -12,11 +12,11 @@
  */
 
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
-import { Bellows } from '../../src/bellows';
-import { registerBuiltins } from '../../src/register';
-import { internParam } from '../../src/kernel/engine';
-import { EventKind, type KernelEvent } from '../../src/types';
-import { Tuning } from '../../src/theory/tuning';
+import { Bellows } from 'bellowsjs';
+import { registerBuiltins } from 'bellowsjs';
+import { internParam } from 'bellowsjs';
+import { EventKind, type KernelEvent } from 'bellowsjs';
+import { Tuning } from 'bellowsjs';
 import { VOCAL_ACOUSTICS, VOCAL_DEFAULT_PHONEME, VOCAL_PHONEMES, vocalPhonemeIndex } from '../../src/engines/vocal-phonemes';
 import { parseCmudict } from '../../src/lyrics/cmudict';
 import type { SungPlan } from '../../src/lyrics/types';
@@ -24,7 +24,9 @@ import { sungEvents } from '../../src/sing';
 import { vocalGlideLead, VOCAL_PLAN_LEAD } from '../../src/engines/vocal';
 import { planSung } from '../../src/lyrics/sing';
 import { lyricsToSyllables } from '../../src/lyrics/read';
-import { yin } from '../../src/analysis/pitch';
+import { yin } from 'bellowsjs';
+import { voice } from '../../src/plugin';
+import { singer, type Singer } from '../../src/singer';
 import { FakeAudioContext, FakeWorkletNode, installFakeAudio } from './fake-context';
 
 const nodes: FakeWorkletNode[] = [];
@@ -43,6 +45,7 @@ async function boot(seed = 'sing'): Promise<Bellows> {
     seed,
     workletUrl: 'fake://worklet',
     context: new FakeAudioContext() as unknown as AudioContext,
+    plugins: [voice],
   });
   live.push(b);
   return b;
@@ -95,7 +98,7 @@ afterEach(() => {
 describe('sing(): events', () => {
   it('sets the phoneme before the NoteOn it shapes, at the same time', async () => {
     const b = await boot();
-    const v = b.voice('vocal');
+    const v = singer(b);
     const plan = v.sing('/sɑ/', [{ note: 'A3', dur: '2n' }], { at: 1 });
     const ev = postedEvents();
     const on = ev.findIndex((e) => e.kind === EventKind.NoteOn);
@@ -111,7 +114,7 @@ describe('sing(): events', () => {
 
   it('posts one note per phrase, in time order, with the opening consonants ahead of the beat', async () => {
     const b = await boot();
-    const v = b.voice('vocal');
+    const v = singer(b);
     const plan = v.sing('string, string', [
       { note: 'C4', dur: '2n' },
       { note: 'D4', dur: '2n' },
@@ -136,7 +139,7 @@ describe('sing(): events', () => {
   it('reproduces a 19-EDO line exactly through bend, relative to the phrase first Hz', async () => {
     const b = await boot();
     b.tuning = Tuning.edo(19);
-    const v = b.voice('vocal');
+    const v = singer(b);
     const steps = [60, 63, 66, 71, 60];
     const plan = v.sing('/lɑ lɑ lɑ lɑ lɑ/', steps.map((n) => ({ note: n, dur: '4n' })), { at: 0.5 });
     expect(plan.phrases).toHaveLength(1);
@@ -162,7 +165,7 @@ describe('sing(): events', () => {
 
   it('lays notes end to end through the tempo map, and a null note is a rest that ends a phrase', async () => {
     const b = await boot();
-    const v = b.voice('vocal');
+    const v = singer(b);
     // 120 bpm default: a quarter is 0.5 s
     const plan = v.sing('/ɑ ɑ ɑ/', [
       { note: 'A3', dur: '4n' },
@@ -178,7 +181,7 @@ describe('sing(): events', () => {
 
   it('leaves a default channel at bend 0 and the default phoneme after the NoteOff', async () => {
     const b = await boot();
-    const v = b.voice('vocal');
+    const v = singer(b);
     const plan = v.sing('/sɪt/', [{ note: 'C4', dur: '4n' }], { at: 1 });
     const ev = postedEvents();
     const off = ev.findIndex((e) => e.kind === EventKind.NoteOff);
@@ -191,7 +194,7 @@ describe('sing(): events', () => {
 
   it('gives a channel back its own phoneme and bend, and an untimed param() becomes its own', async () => {
     const b = await boot();
-    const v = b.voice('vocal', { phoneme: ph('i'), bend: 12 });
+    const v = singer(b, { phoneme: ph('i'), bend: 12 });
     const resets = (from: number) => {
       const ev = postedEvents().slice(from);
       const off = ev.findIndex((e) => e.kind === EventKind.NoteOff);
@@ -226,7 +229,7 @@ describe('sing(): events', () => {
 
   it('fits a line around one still singing on the same instrument, and says what it cut', async () => {
     const b = await boot();
-    const v = b.voice('vocal');
+    const v = singer(b);
     const a = v.sing('/ɑ ɑ/', [{ note: 'C4', dur: { seconds: 0.5 } }, { note: 'G4', dur: { seconds: 0.5 } }], { at: 0.5 });
     expect(a.trimmed).toBe(0);
     const endA = a.phrases[0].end;
@@ -257,7 +260,7 @@ describe('sing(): events', () => {
 
   it('never releases a stop early into the phrase before it, so a short rest keeps its /t/', async () => {
     const b = await boot();
-    const v = b.voice('vocal');
+    const v = singer(b);
     const plan = v.sing('ta ta', [{ note: 'A3', dur: '8n' }, { note: null, dur: '32n' }, { note: 'A3', dur: '8n' }], { at: 1 });
     expect(plan.trimmed).toBe(0);
     const ev = postedEvents();
@@ -274,7 +277,7 @@ describe('sing(): events', () => {
 
   it('live with no at, starts the line late enough for its opening consonants to sound', async () => {
     const b = await boot();
-    const v = b.voice('vocal');
+    const v = singer(b);
     const now = (b as unknown as { ctx: AudioContext }).ctx.currentTime;
     const plan = v.sing('string', [{ note: 'A3', dur: '4n' }]);
     expect(plan.leadIn).toBeGreaterThan(0.1);
@@ -286,7 +289,7 @@ describe('sing(): events', () => {
     const b = await boot();
     b.bpm(120);
     b.rampBpm(240, '2m');
-    const v = b.voice('vocal');
+    const v = singer(b);
     const plan = v.sing('la la la la', [0, 1, 2, 3].map(() => ({ note: 'A3', dur: '4n' })), { at: 1 });
     const beats = plan.phrases[0].spans.filter((s) => s.kind === 'nucleus').map((s) => s.start);
     const gaps = beats.slice(1).map((t, i) => t - beats[i]);
@@ -297,7 +300,7 @@ describe('sing(): events', () => {
 
   it('reports a symbol the engine lacks and keeps the sound before it, instead of throwing', async () => {
     const b = await boot();
-    const v = b.voice('vocal');
+    const v = singer(b);
     // x (as in loch) and ç have no phoneme; a phrase opening on one starts from the breath's silence
     const plan = v.sing('/xɑç ɑ/', [{ note: 'C4', dur: '4n' }, { note: 'D4', dur: '4n' }], { at: 1 });
     expect(plan.unknown).toEqual(['x', 'ç']);
@@ -312,26 +315,26 @@ describe('sing(): events', () => {
 
   it('reads words through b.dictionary, and opts.dictionary overrides it', async () => {
     const b = await boot();
-    const v = b.voice('vocal');
+    const v = singer(b);
     const sounds = (p: SungPlan) => p.phrases[0].spans.map((s) => s.ipa).join(' ');
     const note = [{ note: 'C4', dur: '4n' }];
     const rules = sounds(v.sing('cat', note, { at: 1 }));
-    b.dictionary = parseCmudict('CAT  D AO1 G\n');
+    v.dictionary = parseCmudict('CAT  D AO1 G\n');
     expect(sounds(v.sing('cat', note, { at: 2 }))).toBe('d ɔ g');
     expect(sounds(v.sing('cat', note, { at: 3, dictionary: parseCmudict('CAT  M IY1 UW0\n') }))).not.toContain('ɔ');
-    b.dictionary = null;
+    v.dictionary = null;
     expect(sounds(v.sing('cat', note, { at: 4 }))).toBe(rules);
     expect(rules).toContain('k');
   });
 
   it('sings in b.accent, and opts.accent overrides it', async () => {
     const b = await boot();
-    const v = b.voice('vocal');
-    b.dictionary = parseCmudict('GOAT  G OW1 T\nCAR  K AA1 R\n');
+    const v = singer(b);
+    v.dictionary = parseCmudict('GOAT  G OW1 T\nCAR  K AA1 R\n');
     const sounds = (p: SungPlan) => p.phrases.flatMap((ph) => ph.spans.map((s) => s.ipa)).join(' ');
     const notes = [{ note: 'C4', dur: '4n' }, { note: 'D4', dur: '4n' }];
     expect(sounds(v.sing('goat car', notes, { at: 1 }))).toBe('g o u t k ɑ ɹ');
-    b.accent = 'southern-british';
+    v.accent = 'southern-british';
     expect(sounds(v.sing('goat car', notes, { at: 3 }))).toBe('g ə ʊ ʔ k ɑ');
     expect(sounds(v.sing('goat car', notes, { at: 5, accent: 'irish' }))).toBe('g o t k a ɹ');
     expect(() => v.sing('goat', notes, { at: 7, accent: 'martian' })).toThrow(/unknown accent/);
@@ -339,8 +342,8 @@ describe('sing(): events', () => {
 
   it('speaks: one phrase per clause, falling at a full stop and rising at a question mark', async () => {
     const b = await boot();
-    const v = b.voice('vocal');
-    b.dictionary = parseCmudict('GOAT  G OW1 T\nCAR  K AA1 R\n');
+    const v = singer(b);
+    v.dictionary = parseCmudict('GOAT  G OW1 T\nCAR  K AA1 R\n');
     const stated = v.speak('goat car.', { at: 1, hz: 100 });
     const asked = v.speak('goat car?', { at: 5, hz: 100 });
     const last = (p: SungPlan) => p.phrases[p.phrases.length - 1].pitches.at(-1)!.hz;
@@ -348,26 +351,15 @@ describe('sing(): events', () => {
     expect(last(asked)).toBeGreaterThan(100);
     expect(v.speak('goat, car.', { at: 9 }).phrases).toHaveLength(2);
     expect(stated.unknown).toEqual([]);
-    expect(() => b.voice('pluck').speak('goat')).toThrow(/'vocal'/);
-  });
-
-  it('refuses an instrument whose engine cannot sing, and says which engine to use', async () => {
-    const b = await boot();
-    const pluck = b.voice('pluck');
-    expect(() => pluck.sing('la', [{ note: 'C4', dur: '4n' }])).toThrow(/'vocal'.*'pluck'|'pluck'.*'vocal'/);
-    expect(postedEvents()).toEqual([]);
   });
 
   it('goes inert once disposed, like every other Instrument call, whatever its engine', async () => {
     const b = await boot();
-    const v = b.voice('vocal');
+    const v = singer(b);
     v.dispose();
     const empty = { phrases: [], leadIn: 0, unknown: [], trimmed: 0 };
     expect(v.sing('la', [{ note: 'C4', dur: '4n' }], { at: 1 })).toEqual(empty);
-    // a disposed handle ignores everything, so it does not get as far as checking its engine
-    const pluck = b.voice('pluck');
-    pluck.dispose();
-    expect(pluck.sing('la', [{ note: 'C4', dur: '4n' }], { at: 1 })).toEqual(empty);
+    expect(v.speak('la', { at: 2 })).toEqual(empty);
     expect(postedEvents().filter((e) => e.kind === EventKind.NoteOn)).toEqual([]);
   });
 });
@@ -375,9 +367,9 @@ describe('sing(): events', () => {
 describe('sing(): audio', () => {
   const SR = 48000;
 
-  async function sungRender(seed: string, extra?: (v: ReturnType<Bellows['voice']>, t: number) => void) {
+  async function sungRender(seed: string, extra?: (v: Singer, t: number) => void) {
     const b = await boot(seed);
-    const v = b.voice('vocal');
+    const v = singer(b);
     b.clock.at('1m', (t, step) => {
       if (step !== 0) return;
       v.sing('/sɑ/', [{ note: 'A4', dur: { seconds: 0.6 } }], { at: t + 0.5 });
@@ -434,7 +426,7 @@ describe('sing(): audio', () => {
      */
     const render = async (withB: boolean) => {
       const b = await boot('sing-overlap');
-      const v = b.voice('vocal', { vibratoDepth: 0, drift: 0, roughness: 0, breath: 0 });
+      const v = singer(b, { vibratoDepth: 0, drift: 0, roughness: 0, breath: 0 });
       b.clock.at('1m', (_t, step) => {
         if (step !== 0) return;
         v.sing('/ɑ ɑ/', [{ note: 'C4', dur: { seconds: 0.5 } }, { note: 'G4', dur: { seconds: 0.5 } }], { at: 0.5 });
@@ -459,7 +451,7 @@ describe('sing(): audio', () => {
     const half = { seconds: (bStart - 0.5) / 2 };
     const render = async (withB: boolean) => {
       const b = await boot('sing-overlap-reverse');
-      const v = b.voice('vocal', { vibratoDepth: 0, drift: 0, roughness: 0, breath: 0 });
+      const v = singer(b, { vibratoDepth: 0, drift: 0, roughness: 0, breath: 0 });
       b.clock.at('1m', (_t, step) => {
         if (step !== 0) return;
         if (withB) {
@@ -480,7 +472,7 @@ describe('sing(): audio', () => {
   it('after a sung line, a plain note sings the channel\'s own vowel at its own pitch', async () => {
     const render = async (withLine: boolean) => {
       const b = await boot('sing-rest');
-      const v = b.voice('vocal', { phoneme: ph('i'), bend: 12, vibratoDepth: 0, drift: 0, roughness: 0 });
+      const v = singer(b, { phoneme: ph('i'), bend: 12, vibratoDepth: 0, drift: 0, roughness: 0 });
       b.clock.at('1m', (_t, step) => {
         if (step !== 0) return;
         if (withLine) v.sing('/mɑ/', [{ note: 'C3', dur: { seconds: 0.5 } }], { at: 0.5 });
@@ -524,7 +516,7 @@ describe('sing(): audio', () => {
      */
     const onset = async (lyric: string) => {
       const b = await boot('sing-vot');
-      const v = b.voice('vocal', { vibratoDepth: 0, breath: 0 });
+      const v = singer(b, { vibratoDepth: 0, breath: 0 });
       b.clock.at('1m', (t, step) => {
         if (step !== 0) return;
         v.sing(lyric, [{ note: 'A2', dur: { seconds: 0.6 } }], { at: t + 0.5 });
@@ -551,7 +543,7 @@ describe('sing(): audio', () => {
 
   it('replays a sing() made inside a clock callback in b.render(), and only that one', async () => {
     const b = await boot('sing-replay');
-    const v = b.voice('vocal');
+    const v = singer(b);
     // a top-level sing() is live only, as a top-level note() is: render replays the callbacks
     v.sing('/ɑ/', [{ note: 'C4', dur: '2n' }], { at: 0.1 });
     const silent = await b.render({ beats: 4, sampleRate: 22050 });

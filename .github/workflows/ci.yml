@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  voice:
+    name: voice (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: typecheck
+        run: npx tsc --noEmit
+      # The worklet script and the engine's description ship as checked-in generated files. If they
+      # drift from the source, playback runs stale DSP while renderOffline runs the new code.
+      - name: plugin sources are in sync with the engine
+        run: node scripts/gen-plugin.mjs --check
+      - name: vocal tables are in sync with their data
+        run: node scripts/gen-vocal-tract.mjs --check
+      - name: test
+        run: npm test
+      - name: build
+        run: npm run build

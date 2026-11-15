@@ -4,9 +4,9 @@
  * add-into blocks of 128 frames, noteOff at the gate boundary.
  */
 
-import type { EngineDef, Voice } from '../../src/types';
-import { rng } from '../../src/core/prng';
-import { RealFft, hann } from '../../src/dsp/fft';
+import type { EngineDef, Voice } from 'bellowsjs';
+import { rng } from 'bellowsjs';
+import { RealFft, hann } from 'bellowsjs';
 
 export interface RenderOpts {
   seed?: string;
@@ -231,4 +231,4 @@ export function cents(f: number, ref: number): number {
 }
 
 /** LPC formants around a sample; the library's estimateFormants, under the name the tests used first. */
-export { estimateFormants as lpcFormants } from '../../src/analysis/formants';
+export { estimateFormants as lpcFormants } from 'bellowsjs';

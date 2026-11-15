@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { JunctionAirway, ductMin } from '../../src/dsp/junction-airway';
 import { AirwayTube, evenNodes } from '../../src/dsp/airway-tube';
 import { CM_H2O, WALL_TRACHEA, WALL_TRACT } from '../../src/dsp/air';
-import { rng } from '../../src/core/prng';
+import { rng } from 'bellowsjs';
 import { bandEnergy, magSpectrum } from '../engines-physical/helpers';
 
 /** An airway of n sections at `rate`, every section `area` cm^2, glottis held open, lungs at `pLung` cmH2O. */

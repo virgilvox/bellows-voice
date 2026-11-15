@@ -1,12 +1,15 @@
 # Third-party notices
 
-bellowsjs is licensed under MIT (see LICENSE). Parts of it are ported from, or learned
+bellows-voice is licensed under MIT (see LICENSE). Parts of it are ported from, or learned
 from, the software below, which is distributed under its own license. The notice for each is
 reproduced here because the build strips source comments from the executable bundles, so the
-headers in the source files do not reach their code. Each bundle (`dist/bellows.js`,
-`dist/bellows.standalone.js`, `dist/worklet.js`) opens instead with a one-line banner naming
-bellowsjs's license and CHIMERA's copyright and MIT license and pointing here; the shipped
-source maps quote the sources whole, headers included.
+headers in the source files do not reach their code. Each bundle (`dist/index.js`,
+`dist/text.js`, `dist/engine.js`, `dist/worklet.js` and the chunks they share) opens instead
+with a one-line banner naming bellows-voice's license and CHIMERA's copyright and MIT license
+and pointing here; the shipped source maps quote the sources whole, headers included.
+
+This code lived in bellowsjs until 0.4.0 and moved here with its history; the paths below are
+this repository's.
 
 ## CHIMERA
 
@@ -23,7 +26,7 @@ named, it is the engine CHIMERA deleted in commit `cd247a6`, readable at `cd247a
 These files are translations of CHIMERA's code. Each one starts with a header naming the
 CHIMERA file it came from and what was changed.
 
-| bellows file | CHIMERA source |
+| file | CHIMERA source |
 | --- | --- |
 | `src/dsp/glottal.ts` | `crates/chimera/src/sources/glottis.rs`, the drift in `math.rs`, the voice mapping in `voice/human_voice.rs` (TypeScript original `sources/glottis.ts`) |
 | `src/lyrics/ipa.ts` | `crates/chimera/src/phonetics/ipa.rs` (`phonetics/ipa.ts`) |
@@ -47,7 +50,7 @@ published to npm.
 These files contain no CHIMERA code. They follow an approach, a rule or a set of values found
 in CHIMERA, written again in bellows' own idiom, and they say so in their headers.
 
-| bellows file | what follows CHIMERA |
+| file | what follows CHIMERA |
 | --- | --- |
 | `src/lyrics/sing.ts` | the sung timing rules: vowel on the beat, onsets borrowing from the previous note, proportional consonant squeeze (`phonetics/sing.rs`) |
 | `src/dsp/critdamp.ts` | critically damped tracking of articulation targets (`control/articulators.rs`) |

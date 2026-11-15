@@ -56,8 +56,7 @@ try {
       contents: `export * from './src/engines/vowel-solver';
 export { VOCAL_BODIES, VOCAL_NEUTRAL, VOCAL_ARTICULATOR_NAMES, VOCAL_TABLE_PHONEMES } from './src/engines/vocal-tables.gen';
 export { vocalEngine } from './src/engines/vocal';
-export { estimateFormants } from './src/analysis/formants';
-export { rng } from './src/core/prng';`,
+export { estimateFormants, rng } from 'bellowsjs';`,
       resolveDir: pkg,
       loader: 'ts',
     },

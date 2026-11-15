@@ -4,7 +4,7 @@ import { ipaFrontEnd, ipaToSyllables } from '../../src/lyrics/ipa-front-end';
 import { englishFrontEnd } from '../../src/lyrics/english';
 import { isVowel } from '../../src/lyrics/ipa';
 import type { FrontEnd, Syllable } from '../../src/lyrics/types';
-import { rng } from '../../src/core/prng';
+import { rng } from 'bellowsjs';
 import { shownText, sungIpa } from './helpers';
 
 /* CMUdict entries (cmudict.dict, first pronunciations) for the lyrics below. */

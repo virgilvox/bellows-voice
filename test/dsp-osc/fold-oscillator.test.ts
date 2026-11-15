@@ -11,7 +11,7 @@ import { GLOTTIS_GEOMETRIC, GLOTTIS_PULSE, GLOTTIS_SELF_OSCILLATING, JunctionAir
 import { FOLD_F_REF, FoldOscillator } from '../../src/dsp/fold-oscillator';
 import { PitchServo } from '../../src/dsp/pitch-servo';
 import { CM_H2O } from '../../src/dsp/air';
-import { rng } from '../../src/core/prng';
+import { rng } from 'bellowsjs';
 
 /** A uniform open tract of n sections of 3 cm^2, lungs at pLung cmH2O, the folds of `model`. */
 function airway(rate: number, model: number, hz: number, pLung = 8): JunctionAirway {

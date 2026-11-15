@@ -37,7 +37,7 @@
  * interval), and no preparation.
  */
 
-import { clamp } from '../types';
+import { clamp } from 'bellowsjs';
 
 const MIN_DAMPING = 0.2;
 const MAX_PREPARATION = 1;

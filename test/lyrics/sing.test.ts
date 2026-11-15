@@ -13,8 +13,8 @@ import {
   consonantDuration,
 } from '../../src/lyrics/durations';
 import type { Segment, SungNote, SungPlan, SungSpan, Syllable } from '../../src/lyrics/types';
-import { TempoMap } from '../../src/seq/tempomap';
-import { Tuning } from '../../src/theory/tuning';
+import { TempoMap } from 'bellowsjs';
+import { Tuning } from 'bellowsjs';
 
 /*
  * Syllables are built by hand here: the lyric front end is a separate

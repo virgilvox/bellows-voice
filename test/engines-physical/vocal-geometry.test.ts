@@ -16,7 +16,7 @@ import { JunctionAirway } from '../../src/dsp/junction-airway';
 import { AreaSlew } from '../../src/dsp/area-rate';
 import { VOCAL_BODIES, VOCAL_NEUTRAL } from '../../src/engines/vocal-tables.gen';
 import { vocalPhonemeIndex } from '../../src/engines/vocal-phonemes';
-import { rng } from '../../src/core/prng';
+import { rng } from 'bellowsjs';
 
 const ph = (s: string) => vocalPhonemeIndex(s);
 void KEY_ABDUCTION;

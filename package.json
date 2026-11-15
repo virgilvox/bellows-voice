@@ -1,0 +1,72 @@
+{
+  "name": "bellows-voice",
+  "version": "0.1.0",
+  "description": "An articulatory singing and speaking voice for bellowsjs: a physical model of a singer, lyrics and text in eight English accents, and text to IPA.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./text": {
+      "types": "./dist/text.d.ts",
+      "import": "./dist/text.js",
+      "default": "./dist/text.js"
+    },
+    "./engine": {
+      "types": "./dist/engine.d.ts",
+      "import": "./dist/engine.js",
+      "default": "./dist/engine.js"
+    },
+    "./worklet.js": "./dist/worklet.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "sideEffects": false,
+  "keywords": [
+    "singing",
+    "voice",
+    "speech",
+    "articulatory-synthesis",
+    "vocal-synthesis",
+    "ipa",
+    "accents",
+    "lyrics",
+    "web-audio",
+    "audioworklet",
+    "bellows"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/virgilvox/bellows-voice.git"
+  },
+  "homepage": "https://bellows.live/docs/singing",
+  "scripts": {
+    "build": "node scripts/gen-plugin.mjs && node scripts/build.mjs && tsc -p tsconfig.build.json && node scripts/postbuild.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "gen:plugin": "node scripts/gen-plugin.mjs",
+    "gen:vocal": "node scripts/gen-vocal-tract.mjs",
+    "gen:vocal:check": "node scripts/gen-vocal-tract.mjs --check",
+    "gen:vowels": "node scripts/gen-extra-vowels.mjs"
+  },
+  "peerDependencies": {
+    "bellowsjs": ">=0.5.0 <0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "bellowsjs": "^0.5.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.10"
+  }
+}

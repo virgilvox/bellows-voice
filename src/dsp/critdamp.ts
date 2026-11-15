@@ -41,7 +41,7 @@
  * (CritDampBank), so step() allocates nothing.
  */
 
-import { clamp } from '../types';
+import { clamp } from 'bellowsjs';
 
 /** The root of (1 + u) exp(-u) = 0.02: w times the 98 percent settling time. */
 export const CRITDAMP_SETTLE_98 = 5.83392170191739;

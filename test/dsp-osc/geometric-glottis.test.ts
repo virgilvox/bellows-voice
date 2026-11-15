@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { GeometricGlottis, edgeOpen } from '../../src/dsp/geometric-glottis';
 import { GlottalSource } from '../../src/dsp/glottal';
-import { rng } from '../../src/core/prng';
+import { rng } from 'bellowsjs';
 
 /** The integral over u in [0, 1] of max(a (1 - u) + b sin(pi u), 0), by the midpoint rule. */
 function brute(a: number, b: number): number {

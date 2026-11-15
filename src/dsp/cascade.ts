@@ -40,7 +40,7 @@
  * nothing on the step path allocates.
  */
 
-import { clamp } from '../types';
+import { clamp } from 'bellowsjs';
 
 /** The default order: VocalTractLab's. */
 export const CASCADE_ORDER = 6;

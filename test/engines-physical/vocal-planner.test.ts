@@ -12,7 +12,7 @@ import { vocalEngine } from '../../src/engines/vocal';
 import { vocalPhonemeIndex } from '../../src/engines/vocal-phonemes';
 import { CASCADE_SETTLE_98 } from '../../src/dsp/cascade';
 import { CRITDAMP_SETTLE_98 } from '../../src/dsp/critdamp';
-import { rng } from '../../src/core/prng';
+import { rng } from 'bellowsjs';
 import { defaultParams } from './helpers';
 
 const idx = (ipa: string) => {

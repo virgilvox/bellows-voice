@@ -58,7 +58,7 @@
  * This is a planner and runs off the audio thread; it allocates.
  */
 
-import { clamp } from '../types';
+import { clamp } from 'bellowsjs';
 import { SUNG_CONSONANT_SCALE, consonantDuration } from './durations';
 import { isVowel } from './ipa';
 import type {

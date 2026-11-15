@@ -9,7 +9,7 @@ import { bark, predictFormants, solveVowel, tubeResonances, vowelGeometry } from
 import { vocalEngine } from '../../src/engines/vocal';
 import { VOCAL_PHONEMES, vocalPhonemeIndex } from '../../src/engines/vocal-phonemes';
 import { VOCAL_BODIES, VOCAL_NEUTRAL, VOCAL_TABLE_PHONEMES } from '../../src/engines/vocal-tables.gen';
-import { rng } from '../../src/core/prng';
+import { rng } from 'bellowsjs';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

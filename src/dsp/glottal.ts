@@ -183,8 +183,8 @@
  * sample: a click. Frequency is applied every sample.
  */
 
-import type { NamedRng } from '../types';
-import { clamp } from '../types';
+import type { NamedRng } from 'bellowsjs';
+import { clamp } from 'bellowsjs';
 
 /** Turns a bellows gauss() draw (sd 0.714) into a unit-variance one, as CHIMERA draws. */
 const UNIT_GAUSS = 1 / (Math.sqrt(1 / 3) * Math.SQRT2 * 0.875);

@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { rng } from '../../src/core/prng';
+import { rng } from 'bellowsjs';
 import { GlottalSource } from '../../src/dsp/glottal';
 import { correlation, magnitudeSpectrum } from './spectrum';
 

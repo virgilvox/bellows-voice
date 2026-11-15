@@ -121,3 +121,14 @@ way, with the voice as one more consumer on top of the facade.
 3. Gate: the voice package renders bellows 0.4.0's goldens exactly, in the browser through the
    worklet and in Node.
 4. Release the voice 0.1.0, then bellows 0.5.0 without it, then deploy the site using it.
+
+## Done (2026-11-14)
+
+The owner chose the name `bellows-voice`. Steps 1 to 4 are done: bellowsjs 0.5.0 has the plugin path
+(`Bellows.boot({ plugins })`, `b.use()`, the worklet hook and the host API), this repository holds
+the voice with its history, and the gate held: five reference renders hash identically from
+bellowsjs 0.4.0 and from this package, and `test/integration/plugin.test.ts` renders through the
+plugin and through `renderOffline` with zero difference. Differences from the proposal: the
+package is `bellows-voice`, not `bellows-cantor`; `singer()` lives in the main entry and the engine
+on the calling thread in `bellows-voice/engine`, so a page that sings carries the DSP once, inside
+the worklet script; and the plugin loads through `addModule` with no eval, as proposed.

@@ -95,11 +95,11 @@
  * vibrato's starting phase, drawn per note).
  */
 
-import type { EngineDef, NamedRng, ParamSpec, Voice } from '../types';
-import { clamp } from '../types';
+import type { EngineDef, NamedRng, ParamSpec, Voice } from 'bellowsjs';
+import { clamp } from 'bellowsjs';
 import { CascadeBank } from '../dsp/cascade';
 import { PitchGlide } from '../dsp/pitchglide';
-import { Adsr } from '../dsp/envelopes';
+import { Adsr } from 'bellowsjs';
 import { CM_H2O, SOUND_SPEED } from '../dsp/air';
 import { GLOTTIS_GEOMETRIC, GLOTTIS_PULSE, GLOTTIS_SELF_OSCILLATING, JunctionAirway, ductMin } from '../dsp/junction-airway';
 import { VOCAL_DEFAULT_PHONEME, VOCAL_PHONEMES } from './vocal-phonemes';

@@ -97,7 +97,7 @@
  * airway's, from its prototype (docs/VOICE-2.md, "The junction airway").
  */
 
-import type { NamedRng } from '../types';
+import type { NamedRng } from 'bellowsjs';
 import { AIR_DENSITY, AIR_DYNAMIC_VISCOSITY, CM_H2O, SOUND_SPEED, WALL_NASAL, WALL_TRACHEA, WALL_TRACT } from './air';
 import { AirwayTube, TUBE_RING, evenNodes } from './airway-tube';
 import { AreaSlew } from './area-rate';

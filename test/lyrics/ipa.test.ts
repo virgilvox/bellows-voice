@@ -7,7 +7,7 @@ import {
   readIpa,
   tokenizeIpa,
 } from '../../src/lyrics/ipa';
-import { rng } from '../../src/core/prng';
+import { rng } from 'bellowsjs';
 import { show } from './helpers';
 
 const read = (s: string) => show(tokenizeIpa(s));

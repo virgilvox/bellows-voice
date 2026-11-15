@@ -5,7 +5,7 @@
  * sings, beside the copy the AudioWorklet already carries. Only the glide filter comes along here.
  */
 
-import { clamp } from '../types';
+import { clamp } from 'bellowsjs';
 import { CRITDAMP_SETTLE_98 } from '../dsp/critdamp';
 import { PitchGlide } from '../dsp/pitchglide';
 

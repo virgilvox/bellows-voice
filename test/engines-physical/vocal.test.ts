@@ -22,11 +22,11 @@ import { fileURLToPath } from 'node:url';
 import { vocalEngine, vocalGlideLead, VOCAL_PLAN_LEAD } from '../../src/engines/vocal';
 import { VOCAL_PHONEMES, vocalPhonemeIndex } from '../../src/engines/vocal-phonemes';
 import { VOCAL_BODIES } from '../../src/engines/vocal-tables.gen';
-import { rng, mulberry32, xmur3 } from '../../src/core/prng';
+import { rng, mulberry32, xmur3 } from 'bellowsjs';
 import { sungEvents } from '../../src/sing';
 import { planSung } from '../../src/lyrics/sing';
 import { lyricsToSyllables } from '../../src/lyrics/read';
-import { EventKind, type NamedRng, type Voice } from '../../src/types';
+import { EventKind, type NamedRng, type Voice } from 'bellowsjs';
 import { bandEnergy, countDiffs, countNonFinite, defaultParams, magSpectrum, maxAbs, rms } from './helpers';
 
 const SR = 48000;

@@ -107,8 +107,8 @@
  * A planner, run off the audio thread; it allocates.
  */
 
-import type { KernelEvent } from './types';
-import { EventKind } from './types';
+import type { KernelEvent } from 'bellowsjs';
+import { EventKind } from 'bellowsjs';
 import type { SungPhrase, SungPlan } from './lyrics/types';
 import {
   VOCAL_ACOUSTICS,
