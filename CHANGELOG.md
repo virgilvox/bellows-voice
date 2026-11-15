@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.0
+
+- **Twelve more accents**, twenty in all: Canadian, Californian, New York, Northern English,
+  Geordie, Welsh, Northern Irish (Belfast), South African, Nigerian, Jamaican, Indian and
+  Singaporean join General American, Southern US, Southern British, London, Scottish, Irish,
+  Australian and New Zealand.
+- **Syllable timing**: an accent's prosody can set `stressRatio`, how much longer a stressed vowel
+  is than an unstressed one in speech (2 by default; near 1 for Indian, Nigerian, Singaporean and
+  Jamaican English, 1.5 for Welsh).
+- **Raising**: an accent's `raised` realizations apply before a voiceless consonant in the same
+  word, which is Canadian raising ("price" and "house" against "prize" and "how").
+- **`bellows-voice/view`**: `TractModel`, the voice's geometry on its articulator targets, moving
+  at the engine's speeds, for drawing the mouth.
+- **Fixed:** a one-syllable function word ("the", "a") no longer takes an accent's commA vowel, which
+  is a longer word's final schwa ("comma", "sofa"): Scottish "the" was ðʌ and is ðə again. Indian
+  English keeps its tapped r in NURSE and lettER. Every other reference render still matches 0.4.0
+  sample for sample.
+
 ## 0.1.0
 
 The singing voice leaves bellowsjs (where it shipped through 0.4.0) for its own package, with its

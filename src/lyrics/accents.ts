@@ -16,8 +16,12 @@
  * Sources for the tables: J. C. Wells, Accents of English (1982), and the lexical-set tables of the
  * Wikipedia articles on each accent, which cite Cruttenden (Gimson's Pronunciation of English, 2014)
  * for Southern British, Cox and Palethorpe (2007) for Australian, Bauer et al. (2007) for New Zealand,
- * Hickey (2007) for Irish, Stuart-Smith (2004) for Scottish, Wells and Tollfree for London, and Thomas
- * (2004) for the American South. They are broad transcriptions of each accent's mainstream form, not
+ * Hickey (2007) for Irish, Stuart-Smith (2004) for Scottish, Wells and Tollfree for London, Thomas
+ * (2004) for the American South, Boberg (2008) for Canadian, Labov (2006) for New York, Penhallurick
+ * (2004) for Welsh, Watt and Milroy (1999) for Geordie, Beal (2004) for the North of England, Bowerman
+ * (2004) for South Africa, Gut (2004) for Nigeria, Devonish and Harry (2004) for Jamaica, Sailaja (2009)
+ * for India and Deterding (2007) for Singapore, as summarized in those articles and the Handbook of
+ * Varieties of English (Kortmann and Schneider, 2004). They are broad transcriptions of each accent's mainstream form, not
  * of any one speaker.
  */
 
@@ -65,6 +69,12 @@ export interface Prosody {
   declination: number;
   /** Speaking rate, 1 for General American's. */
   rate: number;
+  /**
+   * How much longer a stressed vowel is than an unstressed one: about 2 in stress-timed English
+   * (General American, British), nearer 1 in the syllable-timed Englishes of India, Nigeria,
+   * Singapore and the Caribbean. Left out, 2.
+   */
+  stressRatio?: number;
 }
 
 export interface Accent {
@@ -87,6 +97,12 @@ export interface Accent {
   r: RRule;
   /** Drops h at the start of a word ("house" ouse). */
   hDrop?: boolean;
+  /**
+   * Realizations used instead of `sets` when the vowel comes before a voiceless consonant in the
+   * same word: Canadian raising, "price" and "house" with a raised start where "prize" and "how"
+   * keep a low one.
+   */
+  raised?: Partial<Record<LexicalSet, string>>;
   /** Speech melody and rate; General American's when left out. */
   prosody?: Prosody;
 }
@@ -229,10 +245,237 @@ export const SOUTHERN_US: Accent = {
   prosody: { tune: 'fall', range: 5, declination: 2, rate: 0.85 },
 };
 
+/* ---- North America ---- */
+
+export const CANADIAN: Accent = {
+  id: 'canadian',
+  name: 'Canadian',
+  rhotic: true,
+  sets: {
+    TRAP: 'a', BATH: 'a', LOT: 'ɒ', CLOTH: 'ɒ', THOUGHT: 'ɒ', PALM: 'ɒ', FACE: 'eɪ', GOAT: 'oʊ',
+  },
+  // Canadian raising: "price" and "house" start higher than "prize" and "how"
+  raised: { PRICE: 'ʌɪ', MOUTH: 'ʌʊ' },
+  hold: 0.6,
+  t: 'flap',
+  l: 'dark-coda',
+  th: 'fricative',
+  r: 'approximant',
+  prosody: { tune: 'fall', range: 4, declination: 2, rate: 1 },
+};
+
+export const CALIFORNIAN: Accent = {
+  id: 'californian',
+  name: 'Californian',
+  rhotic: true,
+  sets: {
+    KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɑ', CLOTH: 'ɑ', THOUGHT: 'ɑ', FOOT: 'ɵ', GOOSE: 'ʉ',
+    GOAT: 'ɵʊ', FACE: 'eɪ',
+  },
+  hold: 0.55,
+  t: 'flap',
+  l: 'dark-coda',
+  th: 'fricative',
+  r: 'approximant',
+  prosody: { tune: 'fall', range: 4.5, declination: 2, rate: 1.05 },
+};
+
+export const NEW_YORK: Accent = {
+  id: 'new-york',
+  name: 'New York',
+  rhotic: false,
+  sets: {
+    TRAP: 'æ', BATH: 'eə', LOT: 'ɑ', PALM: 'ɑ', CLOTH: 'oə', THOUGHT: 'oə', NORTH: 'oə', FORCE: 'oə', START: 'ɑ',
+    NURSE: 'ɜ', PRICE: 'ɑɪ', MOUTH: 'æʊ', GOAT: 'oʊ', NEAR: 'ɪə', SQUARE: 'eə', CURE: 'ʊə', lettER: 'ə',
+  },
+  hold: 0.55,
+  t: 'flap',
+  l: 'dark-coda',
+  th: 'fricative',
+  r: 'approximant',
+  prosody: { tune: 'fall', range: 5, declination: 2, rate: 1.1 },
+};
+
+/* ---- Britain and Ireland ---- */
+
+export const NORTHERN_ENGLISH: Accent = {
+  id: 'northern-english',
+  name: 'Northern English',
+  rhotic: false,
+  sets: {
+    KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɒ', CLOTH: 'ɒ', STRUT: 'ʊ', FOOT: 'ʊ', NURSE: 'ɜ',
+    FLEECE: 'i', FACE: 'e', PALM: 'ɑ', THOUGHT: 'o', GOAT: 'o', GOOSE: 'u', PRICE: 'aɪ', CHOICE: 'ɔɪ',
+    MOUTH: 'aʊ', NEAR: 'ɪə', SQUARE: 'ɛ', START: 'a', NORTH: 'o', FORCE: 'o', CURE: 'ʊə', happY: 'ɪ',
+    lettER: 'ə', commA: 'ə',
+  },
+  hold: 0.6,
+  t: 'glottal-coda',
+  l: 'dark-coda',
+  th: 'fricative',
+  r: 'approximant',
+  hDrop: true,
+  prosody: { tune: 'fall', range: 4, declination: 2, rate: 1 },
+};
+
+export const GEORDIE: Accent = {
+  id: 'geordie',
+  name: 'Geordie (Tyneside)',
+  rhotic: false,
+  sets: {
+    KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɒ', CLOTH: 'ɒ', STRUT: 'ʊ', FOOT: 'ʊ', NURSE: 'ø',
+    FLEECE: 'i', FACE: 'eə', PALM: 'ɑ', THOUGHT: 'ɒ', GOAT: 'ɵ', GOOSE: 'ʉ', PRICE: 'ɛɪ', CHOICE: 'ɔɪ',
+    MOUTH: 'u', NEAR: 'iə', SQUARE: 'ɛ', START: 'ɑ', NORTH: 'ɒ', FORCE: 'ɒ', CURE: 'ʉə', happY: 'i',
+    lettER: 'ɐ', commA: 'ɐ',
+  },
+  hold: 0.55,
+  t: 'glottal-coda',
+  l: 'clear',
+  th: 'fricative',
+  r: 'approximant',
+  prosody: { tune: 'rise', range: 5, declination: 1.5, rate: 1.05 },
+};
+
+export const WELSH: Accent = {
+  id: 'welsh',
+  name: 'Welsh',
+  rhotic: false,
+  sets: {
+    KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɒ', CLOTH: 'ɒ', STRUT: 'ə', FOOT: 'ʊ', NURSE: 'ø',
+    FLEECE: 'i', FACE: 'e', PALM: 'a', THOUGHT: 'o', GOAT: 'o', GOOSE: 'ʉ', PRICE: 'əɪ', CHOICE: 'ɔɪ',
+    MOUTH: 'əʊ', NEAR: 'ɪə', SQUARE: 'ɛ', START: 'a', NORTH: 'o', FORCE: 'o', CURE: 'ʊə', happY: 'i',
+    lettER: 'ə', commA: 'a',
+  },
+  hold: 0.55,
+  t: 'released',
+  l: 'clear',
+  th: 'fricative',
+  r: 'tap',
+  // the Welsh lilt: a rise and wide range on statements, and less difference between syllables
+  prosody: { tune: 'rise', range: 6, declination: 1, rate: 1, stressRatio: 1.5 },
+};
+
+export const NORTHERN_IRISH: Accent = {
+  id: 'northern-irish',
+  name: 'Northern Irish (Belfast)',
+  rhotic: true,
+  sets: {
+    KIT: 'ɘ', DRESS: 'ɛ', TRAP: 'ɑ', BATH: 'ɑ', LOT: 'ɔ', CLOTH: 'ɔ', STRUT: 'ɐ', FOOT: 'ʉ', FLEECE: 'i',
+    FACE: 'eə', PALM: 'ɑ', THOUGHT: 'ɔ', GOAT: 'o', GOOSE: 'ʉ', PRICE: 'ɛɪ', CHOICE: 'ɔɪ', MOUTH: 'ɘʉ',
+    NEAR: 'i', SQUARE: 'e', START: 'ɑ', NORTH: 'ɔ', FORCE: 'o', CURE: 'ʉ', happY: 'e',
+  },
+  hold: 0.5,
+  t: 'flap',
+  l: 'clear',
+  th: 'fricative',
+  r: 'approximant',
+  // statements rise in Belfast (Grabe and Post)
+  prosody: { tune: 'rise', range: 5, declination: 1.5, rate: 1.05 },
+};
+
+/* ---- Africa, Asia and the Caribbean ---- */
+
+export const SOUTH_AFRICAN: Accent = {
+  id: 'south-african',
+  name: 'South African',
+  rhotic: false,
+  sets: {
+    KIT: 'ɪ', DRESS: 'e', TRAP: 'ɛ', BATH: 'ɑ', LOT: 'ɒ', CLOTH: 'ɒ', STRUT: 'ɐ', FOOT: 'ʊ', NURSE: 'ø',
+    FLEECE: 'i', FACE: 'eɪ', PALM: 'ɑ', THOUGHT: 'o', GOAT: 'œʊ', GOOSE: 'ʉ', PRICE: 'ɑɪ', CHOICE: 'ɔɪ',
+    MOUTH: 'æʊ', NEAR: 'ɪə', SQUARE: 'e', START: 'ɑ', NORTH: 'o', FORCE: 'o', CURE: 'ʊə', happY: 'i',
+    lettER: 'ə', commA: 'ə',
+  },
+  hold: 0.55,
+  t: 'released',
+  l: 'clear',
+  th: 'fricative',
+  r: 'approximant',
+  prosody: { tune: 'fall', range: 4, declination: 2, rate: 1 },
+};
+
+export const NIGERIAN: Accent = {
+  id: 'nigerian',
+  name: 'Nigerian',
+  rhotic: false,
+  // no central vowels: STRUT and NURSE take full vowels, schwa is a
+  sets: {
+    KIT: 'i', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɔ', CLOTH: 'ɔ', STRUT: 'ɔ', FOOT: 'u', NURSE: 'ɛ',
+    FLEECE: 'i', FACE: 'e', PALM: 'a', THOUGHT: 'ɔ', GOAT: 'o', GOOSE: 'u', PRICE: 'aɪ', CHOICE: 'ɔɪ',
+    MOUTH: 'aʊ', NEAR: 'ia', SQUARE: 'ɛ', START: 'a', NORTH: 'ɔ', FORCE: 'ɔ', CURE: 'ua', happY: 'i',
+    lettER: 'a', commA: 'a',
+  },
+  hold: 0.5,
+  t: 'released',
+  l: 'clear',
+  th: 'stop',
+  r: 'tap',
+  prosody: { tune: 'fall', range: 4, declination: 1.5, rate: 1, stressRatio: 1.1 },
+};
+
+export const JAMAICAN: Accent = {
+  id: 'jamaican',
+  name: 'Jamaican',
+  rhotic: false,
+  sets: {
+    KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'a', CLOTH: 'a', STRUT: 'ɔ', FOOT: 'ʊ', NURSE: 'ɔ',
+    FLEECE: 'i', FACE: 'ie', PALM: 'a', THOUGHT: 'a', GOAT: 'uo', GOOSE: 'u', PRICE: 'aɪ', CHOICE: 'aɪ',
+    MOUTH: 'ɔʊ', NEAR: 'iɛ', SQUARE: 'iɛ', START: 'a', NORTH: 'a', FORCE: 'uo', CURE: 'uo', happY: 'i',
+    lettER: 'a', commA: 'a',
+  },
+  hold: 0.45,
+  t: 'released',
+  l: 'clear',
+  th: 'stop',
+  r: 'approximant',
+  hDrop: true,
+  prosody: { tune: 'fall', range: 6, declination: 1.5, rate: 1.05, stressRatio: 1.3 },
+};
+
+export const INDIAN: Accent = {
+  id: 'indian',
+  name: 'Indian',
+  rhotic: true,
+  sets: {
+    KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'æ', BATH: 'ɑ', LOT: 'ɒ', CLOTH: 'ɒ', STRUT: 'ə', FOOT: 'ʊ', NURSE: 'əɾ',
+    FLEECE: 'i', FACE: 'e', PALM: 'ɑ', THOUGHT: 'ɔ', GOAT: 'o', GOOSE: 'u', PRICE: 'aɪ', CHOICE: 'ɔɪ',
+    MOUTH: 'aʊ', NEAR: 'iə', SQUARE: 'e', START: 'ɑ', NORTH: 'ɔ', FORCE: 'o', CURE: 'uə', happY: 'i',
+    lettER: 'əɾ', commA: 'ə',
+  },
+  hold: 0.5,
+  t: 'released',
+  l: 'clear',
+  th: 'stop',
+  r: 'tap',
+  prosody: { tune: 'fall', range: 5, declination: 1.5, rate: 1.05, stressRatio: 1.25 },
+};
+
+export const SINGAPOREAN: Accent = {
+  id: 'singaporean',
+  name: 'Singaporean',
+  rhotic: false,
+  // long and short pairs merge: KIT with FLEECE, FOOT with GOOSE, DRESS with TRAP
+  sets: {
+    KIT: 'i', DRESS: 'ɛ', TRAP: 'ɛ', BATH: 'ɑ', LOT: 'ɔ', CLOTH: 'ɔ', STRUT: 'ɐ', FOOT: 'u', NURSE: 'ə',
+    FLEECE: 'i', FACE: 'e', PALM: 'ɑ', THOUGHT: 'ɔ', GOAT: 'o', GOOSE: 'u', PRICE: 'aɪ', CHOICE: 'ɔɪ',
+    MOUTH: 'aʊ', NEAR: 'ɪə', SQUARE: 'ɛ', START: 'ɑ', NORTH: 'ɔ', FORCE: 'ɔ', CURE: 'ʊə', happY: 'i',
+    lettER: 'ə', commA: 'ə',
+  },
+  hold: 0.5,
+  t: 'glottal-coda',
+  l: 'clear',
+  th: 'stop',
+  r: 'approximant',
+  // syllable-timed
+  prosody: { tune: 'fall', range: 3, declination: 1, rate: 1.1, stressRatio: 1 },
+};
+
 /** The built-in accents, by id. */
 export const ACCENTS: Readonly<Record<string, Accent>> = Object.freeze(
   Object.fromEntries(
-    [GENERAL_AMERICAN, SOUTHERN_BRITISH, LONDON, AUSTRALIAN, NEW_ZEALAND, IRISH, SCOTTISH, SOUTHERN_US].map((a) => [a.id, a]),
+    [
+      GENERAL_AMERICAN, CANADIAN, CALIFORNIAN, NEW_YORK, SOUTHERN_US,
+      SOUTHERN_BRITISH, LONDON, NORTHERN_ENGLISH, GEORDIE, SCOTTISH, WELSH, IRISH, NORTHERN_IRISH,
+      AUSTRALIAN, NEW_ZEALAND, SOUTH_AFRICAN, NIGERIAN, JAMAICAN, INDIAN, SINGAPOREAN,
+    ].map((a) => [a.id, a]),
   ),
 );
 
@@ -284,15 +527,21 @@ export function applyAccent(syllables: readonly Syllable[], english: (s: Syllabl
     if (!english(syl) || syl.melisma) continue;
     const next = syllables[i + 1];
     const linked = !syl.phraseEnd && next !== undefined && english(next) && !next.melisma && next.onset.length === 0;
-    voiceVowel(syl, accent, linked);
+    // the consonant after the vowel in the same word, for raising
+    const after = syl.coda[0] ?? (!syl.wordEnd && next !== undefined ? next.onset[0] : undefined);
+    const beforeVoiceless = after !== undefined && VOICELESS.has(after.ipa);
+    voiceVowel(syl, accent, linked, beforeVoiceless);
     consonants(syl, accent, i === 0 || syllables[i - 1].wordEnd);
   }
 }
 
-function voiceVowel(syl: Syllable, accent: Accent, linked: boolean): void {
+const VOICELESS = new Set(['p', 't', 'k', 'f', 'θ', 's', 'ʃ', 'tʃ', 'h']);
+
+function voiceVowel(syl: Syllable, accent: Accent, linked: boolean, beforeVoiceless: boolean): void {
   const n = syl.nucleus;
   const set = n.set;
-  const spec = set === undefined ? undefined : accent.sets[set];
+  const raised = set !== undefined && beforeVoiceless ? accent.raised?.[set] : undefined;
+  const spec = raised ?? (set === undefined ? undefined : accent.sets[set]);
   // an r-colored General American vowel loses its color in an accent that names its set
   const hadR = n.ipa === 'ɝ' || n.ipa === 'ɚ';
   if (spec !== undefined) {

@@ -81,13 +81,13 @@ export function tagLexicalSets(word: string, segs: Segment[]): void {
     const rCoda = r && (after === undefined || !isVowel(after));
     const stressed = seg.stress !== undefined && seg.stress > 0;
     const last = n === vowels.length - 1;
-    seg.set = classify(seg.ipa, { w, next, after, rCoda, stressed, last });
+    seg.set = classify(seg.ipa, { w, next, after, rCoda, stressed, last, single: vowels.length === 1 });
   }
 }
 
 function classify(
   v: string,
-  c: { w: string; next?: string; after?: string; rCoda: boolean; stressed: boolean; last: boolean },
+  c: { w: string; next?: string; after?: string; rCoda: boolean; stressed: boolean; last: boolean; single: boolean },
 ): LexicalSet | undefined {
   switch (v) {
     case 'i':
@@ -127,8 +127,9 @@ function classify(
     case 'ɚ':
       return c.stressed ? 'NURSE' : 'lettER';
     case 'ə':
-      // commA is a schwa that ends a word ("comma", "sofa"); one before a consonant ("little", "away") has no set
-      return c.last && c.next === undefined ? 'commA' : undefined;
+      // commA is a schwa that ends a longer word ("comma", "sofa"); one before a consonant ("little",
+      // "away") has no set, and nor does a one-vowel word ("the", "a"), whose schwa is a weak form
+      return c.last && c.next === undefined && !c.single ? 'commA' : undefined;
     case 'aɪ':
       return 'PRICE';
     case 'aʊ':

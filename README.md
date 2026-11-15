@@ -32,7 +32,16 @@ const tenor = singer(b, { body: 0 }, { accent: 'southern-british' });
 tenor.sing('the water in the bath was far too hot', melody, { accent: 'scottish' });
 ```
 
-Built in: `general-american` (the default), `southern-british`, `london`, `australian`, `new-zealand`, `irish`, `scottish`, `southern-us`. An accent is plain data: each of Wells's lexical sets (KIT, BATH, GOAT, NURSE...) voiced as a vowel or a diphthong with its glide timing, whether r after a vowel is said, and its t, l, th, r and h rules. Spread a built-in to make your own:
+Twenty are built in:
+
+| Region | Accents |
+|---|---|
+| North America | `general-american` (the default), `canadian`, `californian`, `new-york`, `southern-us` |
+| Britain and Ireland | `southern-british`, `london`, `northern-english`, `geordie`, `scottish`, `welsh`, `irish`, `northern-irish` |
+| Southern hemisphere | `australian`, `new-zealand`, `south-african` |
+| Africa, Asia, the Caribbean | `nigerian`, `jamaican`, `indian`, `singaporean` |
+
+Each is a broad transcription of the accent's mainstream form, from the published lexical-set tables (sources in `src/lyrics/accents.ts`), not a recording of any one speaker. An accent is plain data: each of Wells's lexical sets (KIT, BATH, GOAT, NURSE...) voiced as a vowel or a diphthong with its glide timing, whether r after a vowel is said, its t, l, th, r and h rules, vowels raised before voiceless consonants (Canadian "price" and "house"), and a speech melody: the final tune, the pitch range, the rate, and how much longer a stressed syllable is than an unstressed one (about twice in British or American English, nearly the same in the syllable-timed Englishes of India, Nigeria, Singapore and Jamaica). Spread a built-in to make your own:
 
 ```js
 import { ACCENTS } from 'bellows-voice';
@@ -49,6 +58,18 @@ pronounce('hello').words[0].sets;                     // [undefined, 'GOAT']
 ```
 
 `bellows-voice/text` is pure TypeScript with no audio and no bellows, for a page, a server or a test.
+
+## Drawing the mouth
+
+`bellows-voice/view` runs the voice's own geometry on its articulator targets, for a UI to draw:
+
+```js
+import { TractModel } from 'bellows-voice/view';
+const tract = new TractModel(1);          // body
+tract.target('i');                        // follow the plan's spans as they play
+tract.step(1 / 60);                       // articulators move at the engine's speeds
+const { upper, lower, velumPort, lipArea } = tract.shape();   // centimetres, glottis to lips
+```
 
 ## Rendering
 

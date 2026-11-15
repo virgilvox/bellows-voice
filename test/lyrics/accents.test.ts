@@ -120,6 +120,34 @@ describe('accents', () => {
   });
 });
 
+describe('the accents of the wider world', () => {
+  it('has twenty, each named and with a prosody', () => {
+    expect(Object.keys(ACCENTS)).toHaveLength(20);
+    for (const a of Object.values(ACCENTS)) {
+      expect(a.name.length).toBeGreaterThan(2);
+      if (a.id !== 'general-american') expect(a.prosody, a.id).toBeDefined();
+    }
+  });
+
+  it('Canadian raises PRICE and MOUTH before a voiceless consonant only', () => {
+    expect(ipa('price house mouth', 'canadian')).toBe('pɹʌɪs hʌʊs mʌʊθ');
+    expect(ipa('how', 'canadian')).not.toContain('ʌʊ');
+    // the voiceless consonant can open the next syllable of the same word ("pricey" style), not the next word
+    expect(read('far away', 'canadian')[0].nucleus.ipa).toBe('ɑ');
+  });
+
+  it('Nigerian has no central vowels; Singaporean merges KIT with FLEECE', () => {
+    expect(ipa('strut nurse comma', 'nigerian')).toBe('stɾɔt nɛs kɔ.ma');
+    expect(read('kit', 'singaporean')[0].nucleus.ipa).toBe(read('fleece', 'singaporean')[0].nucleus.ipa);
+  });
+
+  it('Northern English and Geordie merge FOOT and STRUT', () => {
+    for (const id of ['northern-english', 'geordie']) {
+      expect(read('strut', id)[0].nucleus.ipa).toBe(read('foot', id)[0].nucleus.ipa);
+    }
+  });
+});
+
 describe('the sung planner with accents', () => {
   it('splits any two-vowel nucleus, General American’s five by their targets', () => {
     expect(splitDiphthong('eɪ')).toEqual(['e', 'i']);
@@ -168,6 +196,16 @@ describe('speech', () => {
     expect(rise[rise.length - 1].hz).toBeGreaterThan(100);
     const q = speechPlan(read('far away'), { hz: 100 }, [true]).notes;
     expect(q[q.length - 1].hz).toBeGreaterThan(100);
+  });
+
+  it('evens the syllables out in a syllable-timed accent', () => {
+    const bare = (stressRatio?: number) => speechPlan(read('/ˈa.a.ˈa/'), { prosody: { ...ACCENTS.indian.prosody!, stressRatio } }).notes;
+    const timed = bare(2);
+    expect(timed[0].dur).toBeCloseTo(2 * timed[1].dur, 9);
+    const even = bare(1);
+    expect(even[0].dur).toBeCloseTo(even[1].dur, 9);
+    // the pair keeps its total length
+    expect(even[0].dur + even[1].dur).toBeCloseTo(timed[0].dur + timed[1].dur, 9);
   });
 
   it('rests between phrases and carries the last vowel as a melisma', () => {

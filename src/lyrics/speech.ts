@@ -8,7 +8,8 @@
  * the nuclear tone that ends it, a fall to below the baseline or a rise above it.
  *
  * The figures are this module's, chosen to sound like ordinary read speech at a given rate, not
- * fitted to a corpus: vowels of 0.18 s stressed and 0.09 s unstressed, final lengthening of 1.5, and
+ * fitted to a corpus: vowels of 0.18 s stressed and 0.09 s unstressed (the accent's stress ratio, 2
+ * here, moves them toward each other for syllable-timed Englishes), final lengthening of 1.5, and
  * each consonant's spoken duration (durations.ts) added to the note it closes or opens.
  */
 
@@ -19,6 +20,9 @@ import { consonantDuration } from './durations';
 
 const STRESSED_VOWEL = 0.18;
 const UNSTRESSED_VOWEL = 0.09;
+/* the two together, which another stress ratio splits differently */
+const VOWEL_PAIR = STRESSED_VOWEL + UNSTRESSED_VOWEL;
+const STRESS_RATIO = 2;
 const FINAL_LENGTHENING = 1.5;
 /** The pause after a phrase, s. */
 const PHRASE_PAUSE = 0.28;
@@ -59,6 +63,10 @@ export function speechPlan(
   const pro = opts.prosody ?? DEFAULT_PROSODY;
   const hz = opts.hz !== undefined && opts.hz > 0 ? opts.hz : 110;
   const rate = Math.max(0.1, (opts.rate ?? 1) * pro.rate);
+  const ratio = Math.max(0.5, pro.stressRatio ?? STRESS_RATIO);
+  // the default ratio keeps the exact constants, so speech in a stress-timed accent is unchanged
+  const unstressedVowel = ratio === STRESS_RATIO ? UNSTRESSED_VOWEL : VOWEL_PAIR / (1 + ratio);
+  const stressedVowel = ratio === STRESS_RATIO ? STRESSED_VOWEL : (VOWEL_PAIR * ratio) / (1 + ratio);
   const out: SpokenNote[] = [];
   const sylOut: Syllable[] = [];
   let t = 0;
@@ -73,7 +81,7 @@ export function speechPlan(
       const syl = span[k];
       const last = k === span.length - 1;
       const stressed = syl.nucleus.stress !== undefined && syl.nucleus.stress > 0;
-      let vowel = syl.nucleus.dur ?? (stressed ? STRESSED_VOWEL : UNSTRESSED_VOWEL);
+      let vowel = syl.nucleus.dur ?? (stressed ? stressedVowel : unstressedVowel);
       if (last) vowel *= FINAL_LENGTHENING;
       let consonants = 0;
       for (const c of syl.coda) consonants += c.dur ?? consonantDuration(c.ipa);
