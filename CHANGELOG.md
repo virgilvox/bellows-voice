@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- README: how to load the voice in a single HTML file from a CDN, with the import map that gives the
+  page and the voice one copy of bellows. No code changes.
+
 ## 0.2.0
 
 - **Twelve more accents**, twenty in all: Canadian, Californian, New York, Northern English,

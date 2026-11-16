@@ -25,6 +25,28 @@ alto.speak('Good morning. Where are you from?', { accent: 'australian' });
 
 `voice` is a bellows plugin: the engine, prebuilt as one script that loads into bellows' AudioWorklet beside its kernel, so a page that never sings never loads it. `singer(b, params, opts)` makes an instrument on it and gives it `sing()` and `speak()`, which reach bellows only through its public API. Notes go through bellows' tempo map and tuning like any other note.
 
+## In a single HTML file, from a CDN
+
+bellows-voice imports `bellowsjs` by name, so a page without a bundler maps that name with an import map. The map is also what makes the page and the voice share one copy of bellows; with two copies, `singer()` cannot see the plugin and throws.
+
+```html
+<script type="importmap">
+  { "imports": { "bellowsjs": "https://cdn.jsdelivr.net/npm/bellowsjs@0.5/dist/bellows.js" } }
+</script>
+<script type="module">
+  import { Bellows } from 'bellowsjs';
+  import { voice, singer } from 'https://cdn.jsdelivr.net/npm/bellows-voice@0.2/dist/index.js';
+
+  document.querySelector('button').onclick = async () => {
+    const b = await Bellows.boot({ plugins: [voice] });
+    singer(b, { body: 1 }).speak('Hello from a single file.');
+  };
+</script>
+<button>Speak</button>
+```
+
+The other entries load the same way: `.../dist/text.js`, `.../dist/view.js`, `.../dist/engine.js`. unpkg serves the same files (`https://unpkg.com/bellows-voice@0.2/dist/index.js`).
+
 ## Accents
 
 ```js
