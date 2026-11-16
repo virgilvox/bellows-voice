@@ -44,7 +44,7 @@ export const VOCAL_ENGINE_INFO: EngineInfo = {
       "name": "roughness",
       "min": 0,
       "max": 1,
-      "default": 0.1
+      "default": 0.02
     },
     {
       "name": "fry",

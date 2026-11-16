@@ -20,7 +20,10 @@
  * (2004) for the American South, Boberg (2008) for Canadian, Labov (2006) for New York, Penhallurick
  * (2004) for Welsh, Watt and Milroy (1999) for Geordie, Beal (2004) for the North of England, Bowerman
  * (2004) for South Africa, Gut (2004) for Nigeria, Devonish and Harry (2004) for Jamaica, Sailaja (2009)
- * for India and Deterding (2007) for Singapore, as summarized in those articles and the Handbook of
+ * for India, Deterding (2007) for Singapore, Upton (2004) for traditional RP, Wells (1982) and Watson
+ * (2007) for Liverpool, Thorne (2003) for Birmingham, Wagner (2004) for the West Country, Labov,
+ * Ash and Boberg (2006) for Boston and the Northern Cities Shift, Tayao (2004) for the Philippines,
+ * Huber (2004) for Ghana, Schmied (2004) for East Africa and Youssef and James (2004) for Trinidad, as summarized in those articles and the Handbook of
  * Varieties of English (Kortmann and Schneider, 2004). They are broad transcriptions of each accent's mainstream form, not
  * of any one speaker.
  */
@@ -80,6 +83,8 @@ export interface Prosody {
 export interface Accent {
   id: string;
   name: string;
+  /** Where it is spoken, for grouping in a UI ('North America', 'England', 'Africa', ...). */
+  region?: string;
   /** Says r after a vowel ("car", "card"). A non-rhotic accent still links it before a vowel ("far away"). */
   rhotic: boolean;
   /** Each lexical set's realization, IPA. A set left out keeps General American's vowel. */
@@ -113,6 +118,7 @@ export const DEFAULT_PROSODY: Prosody = { tune: 'fall', range: 4, declination: 2
 export const GENERAL_AMERICAN: Accent = {
   id: 'general-american',
   name: 'General American',
+  region: 'North America',
   rhotic: true,
   sets: {},
   t: 'flap',
@@ -124,6 +130,7 @@ export const GENERAL_AMERICAN: Accent = {
 export const SOUTHERN_BRITISH: Accent = {
   id: 'southern-british',
   name: 'Southern British',
+  region: 'England',
   rhotic: false,
   sets: {
     KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', LOT: 'ɒ', STRUT: 'ɐ', FOOT: 'ʊ', BATH: 'ɑː', CLOTH: 'ɒ', NURSE: 'ɜː',
@@ -142,6 +149,7 @@ export const SOUTHERN_BRITISH: Accent = {
 export const LONDON: Accent = {
   id: 'london',
   name: 'London',
+  region: 'England',
   rhotic: false,
   sets: {
     KIT: 'ɪ', DRESS: 'e', TRAP: 'æ', LOT: 'ɒ', STRUT: 'ɐ', FOOT: 'ʊ', BATH: 'ɑː', CLOTH: 'ɒ', NURSE: 'ɜː',
@@ -161,6 +169,7 @@ export const LONDON: Accent = {
 export const AUSTRALIAN: Accent = {
   id: 'australian',
   name: 'Australian',
+  region: 'Southern hemisphere',
   rhotic: false,
   sets: {
     KIT: 'ɪ', DRESS: 'e', TRAP: 'æ', LOT: 'ɔ', STRUT: 'ɐ', FOOT: 'ʊ', BATH: 'ɐː', CLOTH: 'ɔ', NURSE: 'ɵː',
@@ -179,6 +188,7 @@ export const AUSTRALIAN: Accent = {
 export const NEW_ZEALAND: Accent = {
   id: 'new-zealand',
   name: 'New Zealand',
+  region: 'Southern hemisphere',
   rhotic: false,
   sets: {
     KIT: 'ɘ', DRESS: 'e', TRAP: 'ɛ', LOT: 'ɒ', STRUT: 'ɐ', FOOT: 'ʊ', BATH: 'ɐː', CLOTH: 'ɒ', NURSE: 'øː',
@@ -197,6 +207,7 @@ export const NEW_ZEALAND: Accent = {
 export const IRISH: Accent = {
   id: 'irish',
   name: 'Irish',
+  region: 'Scotland, Wales and Ireland',
   rhotic: true,
   sets: {
     KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', LOT: 'ɑ', STRUT: 'ɐ', FOOT: 'ʊ', BATH: 'aː', CLOTH: 'ɒ', FLEECE: 'iː',
@@ -214,6 +225,7 @@ export const IRISH: Accent = {
 export const SCOTTISH: Accent = {
   id: 'scottish',
   name: 'Scottish',
+  region: 'Scotland, Wales and Ireland',
   rhotic: true,
   sets: {
     KIT: 'ɘ', DRESS: 'ɛ', TRAP: 'a', LOT: 'ɔ', STRUT: 'ʌ', FOOT: 'ʉ', BATH: 'a', CLOTH: 'ɔ', NURSE: 'ʌɾ',
@@ -232,6 +244,7 @@ export const SCOTTISH: Accent = {
 export const SOUTHERN_US: Accent = {
   id: 'southern-us',
   name: 'Southern US',
+  region: 'North America',
   rhotic: true,
   sets: {
     DRESS: 'ɛ', TRAP: 'æ', BATH: 'æ', FACE: 'ɛɪ', THOUGHT: 'ɒɔ', CLOTH: 'ɒɔ', GOAT: 'ɜʉ', GOOSE: 'ʉ',
@@ -250,6 +263,7 @@ export const SOUTHERN_US: Accent = {
 export const CANADIAN: Accent = {
   id: 'canadian',
   name: 'Canadian',
+  region: 'North America',
   rhotic: true,
   sets: {
     TRAP: 'a', BATH: 'a', LOT: 'ɒ', CLOTH: 'ɒ', THOUGHT: 'ɒ', PALM: 'ɒ', FACE: 'eɪ', GOAT: 'oʊ',
@@ -267,6 +281,7 @@ export const CANADIAN: Accent = {
 export const CALIFORNIAN: Accent = {
   id: 'californian',
   name: 'Californian',
+  region: 'North America',
   rhotic: true,
   sets: {
     KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɑ', CLOTH: 'ɑ', THOUGHT: 'ɑ', FOOT: 'ɵ', GOOSE: 'ʉ',
@@ -283,6 +298,7 @@ export const CALIFORNIAN: Accent = {
 export const NEW_YORK: Accent = {
   id: 'new-york',
   name: 'New York',
+  region: 'North America',
   rhotic: false,
   sets: {
     TRAP: 'æ', BATH: 'eə', LOT: 'ɑ', PALM: 'ɑ', CLOTH: 'oə', THOUGHT: 'oə', NORTH: 'oə', FORCE: 'oə', START: 'ɑ',
@@ -301,6 +317,7 @@ export const NEW_YORK: Accent = {
 export const NORTHERN_ENGLISH: Accent = {
   id: 'northern-english',
   name: 'Northern English',
+  region: 'England',
   rhotic: false,
   sets: {
     KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɒ', CLOTH: 'ɒ', STRUT: 'ʊ', FOOT: 'ʊ', NURSE: 'ɜ',
@@ -320,6 +337,7 @@ export const NORTHERN_ENGLISH: Accent = {
 export const GEORDIE: Accent = {
   id: 'geordie',
   name: 'Geordie (Tyneside)',
+  region: 'England',
   rhotic: false,
   sets: {
     KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɒ', CLOTH: 'ɒ', STRUT: 'ʊ', FOOT: 'ʊ', NURSE: 'ø',
@@ -338,6 +356,7 @@ export const GEORDIE: Accent = {
 export const WELSH: Accent = {
   id: 'welsh',
   name: 'Welsh',
+  region: 'Scotland, Wales and Ireland',
   rhotic: false,
   sets: {
     KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɒ', CLOTH: 'ɒ', STRUT: 'ə', FOOT: 'ʊ', NURSE: 'ø',
@@ -357,6 +376,7 @@ export const WELSH: Accent = {
 export const NORTHERN_IRISH: Accent = {
   id: 'northern-irish',
   name: 'Northern Irish (Belfast)',
+  region: 'Scotland, Wales and Ireland',
   rhotic: true,
   sets: {
     KIT: 'ɘ', DRESS: 'ɛ', TRAP: 'ɑ', BATH: 'ɑ', LOT: 'ɔ', CLOTH: 'ɔ', STRUT: 'ɐ', FOOT: 'ʉ', FLEECE: 'i',
@@ -377,6 +397,7 @@ export const NORTHERN_IRISH: Accent = {
 export const SOUTH_AFRICAN: Accent = {
   id: 'south-african',
   name: 'South African',
+  region: 'Southern hemisphere',
   rhotic: false,
   sets: {
     KIT: 'ɪ', DRESS: 'e', TRAP: 'ɛ', BATH: 'ɑ', LOT: 'ɒ', CLOTH: 'ɒ', STRUT: 'ɐ', FOOT: 'ʊ', NURSE: 'ø',
@@ -395,6 +416,7 @@ export const SOUTH_AFRICAN: Accent = {
 export const NIGERIAN: Accent = {
   id: 'nigerian',
   name: 'Nigerian',
+  region: 'Africa',
   rhotic: false,
   // no central vowels: STRUT and NURSE take full vowels, schwa is a
   sets: {
@@ -414,6 +436,7 @@ export const NIGERIAN: Accent = {
 export const JAMAICAN: Accent = {
   id: 'jamaican',
   name: 'Jamaican',
+  region: 'Caribbean',
   rhotic: false,
   sets: {
     KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'a', CLOTH: 'a', STRUT: 'ɔ', FOOT: 'ʊ', NURSE: 'ɔ',
@@ -433,6 +456,7 @@ export const JAMAICAN: Accent = {
 export const INDIAN: Accent = {
   id: 'indian',
   name: 'Indian',
+  region: 'Asia',
   rhotic: true,
   sets: {
     KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'æ', BATH: 'ɑ', LOT: 'ɒ', CLOTH: 'ɒ', STRUT: 'ə', FOOT: 'ʊ', NURSE: 'əɾ',
@@ -451,6 +475,7 @@ export const INDIAN: Accent = {
 export const SINGAPOREAN: Accent = {
   id: 'singaporean',
   name: 'Singaporean',
+  region: 'Asia',
   rhotic: false,
   // long and short pairs merge: KIT with FLEECE, FOOT with GOOSE, DRESS with TRAP
   sets: {
@@ -468,13 +493,219 @@ export const SINGAPOREAN: Accent = {
   prosody: { tune: 'fall', range: 3, declination: 1, rate: 1.1, stressRatio: 1 },
 };
 
+/* ---- more of Britain ---- */
+
+export const RECEIVED_PRONUNCIATION: Accent = {
+  id: 'received-pronunciation',
+  name: 'Received Pronunciation (traditional)',
+  region: 'England',
+  rhotic: false,
+  // the older standard, before the changes Southern British shows: TRAP æ, STRUT ʌ, SQUARE and CURE centring
+  sets: {
+    KIT: 'ɪ', DRESS: 'e', TRAP: 'æ', LOT: 'ɒ', STRUT: 'ʌ', FOOT: 'ʊ', BATH: 'ɑː', CLOTH: 'ɒ', NURSE: 'ɜː',
+    FLEECE: 'iː', FACE: 'eɪ', PALM: 'ɑː', THOUGHT: 'ɔː', GOAT: 'əʊ', GOOSE: 'uː', PRICE: 'aɪ', CHOICE: 'ɔɪ',
+    MOUTH: 'aʊ', NEAR: 'ɪə', SQUARE: 'ɛə', START: 'ɑː', NORTH: 'ɔː', FORCE: 'ɔː', CURE: 'ʊə', happY: 'ɪ',
+    lettER: 'ə', commA: 'ə',
+  },
+  hold: 0.6,
+  t: 'released',
+  l: 'dark-coda',
+  th: 'fricative',
+  r: 'approximant',
+  prosody: { tune: 'fall', range: 7, declination: 3, rate: 0.95 },
+};
+
+export const SCOUSE: Accent = {
+  id: 'scouse',
+  name: 'Scouse (Liverpool)',
+  region: 'England',
+  rhotic: false,
+  // NURSE and SQUARE merge ("fair" and "fur"); FOOT and STRUT merge
+  sets: {
+    KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɒ', CLOTH: 'ɒ', STRUT: 'ʊ', FOOT: 'ʊ', NURSE: 'ɛː',
+    FLEECE: 'iː', FACE: 'ɛɪ', PALM: 'ɑ', THOUGHT: 'ɔ', GOAT: 'əʉ', GOOSE: 'ʉ', PRICE: 'aɪ', CHOICE: 'ɔɪ',
+    MOUTH: 'aʊ', NEAR: 'iə', SQUARE: 'ɛː', START: 'ɑ', NORTH: 'ɔ', FORCE: 'ɔ', CURE: 'ʉə', happY: 'i',
+    lettER: 'ə', commA: 'ə',
+  },
+  hold: 0.5,
+  t: 'released',
+  l: 'clear',
+  th: 'fricative',
+  r: 'tap',
+  prosody: { tune: 'rise', range: 5, declination: 1.5, rate: 1.1 },
+};
+
+export const BRUMMIE: Accent = {
+  id: 'brummie',
+  name: 'Brummie (Birmingham)',
+  region: 'England',
+  rhotic: false,
+  // PRICE starts back and rounded, FACE and GOAT start low and central; a famously level tune
+  sets: {
+    KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɒ', CLOTH: 'ɒ', STRUT: 'ʊ', FOOT: 'ʊ', NURSE: 'ɜ',
+    FLEECE: 'əi', FACE: 'ʌɪ', PALM: 'ɑ', THOUGHT: 'ɔ', GOAT: 'ʌʊ', GOOSE: 'əʉ', PRICE: 'ɔɪ', CHOICE: 'oɪ',
+    MOUTH: 'æʊ', NEAR: 'iə', SQUARE: 'ɛ', START: 'ɑ', NORTH: 'ɔ', FORCE: 'ɔ', CURE: 'ʉə', happY: 'i',
+    lettER: 'ə', commA: 'ə',
+  },
+  hold: 0.5,
+  t: 'glottal-coda',
+  l: 'dark-coda',
+  th: 'fricative',
+  r: 'approximant',
+  hDrop: true,
+  prosody: { tune: 'fall', range: 2.5, declination: 1, rate: 1 },
+};
+
+export const WEST_COUNTRY: Accent = {
+  id: 'west-country',
+  name: 'West Country',
+  region: 'England',
+  // one of the few English accents of England that keeps r after a vowel
+  rhotic: true,
+  sets: {
+    KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɒ', CLOTH: 'ɒ', STRUT: 'ɐ', FOOT: 'ʊ', FLEECE: 'i',
+    FACE: 'e', PALM: 'a', THOUGHT: 'ɒ', GOAT: 'o', GOOSE: 'ʉ', PRICE: 'ɐɪ', CHOICE: 'ɔɪ', MOUTH: 'ɐʊ',
+    NEAR: 'i', SQUARE: 'ɛ', START: 'a', NORTH: 'ɒ', FORCE: 'o', CURE: 'ʉ', happY: 'i',
+  },
+  hold: 0.55,
+  t: 'glottal-coda',
+  l: 'dark',
+  th: 'fricative',
+  r: 'approximant',
+  prosody: { tune: 'fall', range: 4.5, declination: 2, rate: 0.95 },
+};
+
+/* ---- more of North America ---- */
+
+export const BOSTON: Accent = {
+  id: 'boston',
+  name: 'Boston',
+  region: 'North America',
+  rhotic: false,
+  // START and BATH fronted ("pahk the cah"); LOT and THOUGHT merged; PRICE raised before voiceless
+  sets: {
+    TRAP: 'æ', BATH: 'a', LOT: 'ɒ', CLOTH: 'ɒ', THOUGHT: 'ɒ', PALM: 'a', START: 'a', NURSE: 'ɜ',
+    NEAR: 'ɪə', SQUARE: 'ɛə', NORTH: 'ɔə', FORCE: 'ɔə', CURE: 'ʊə', lettER: 'ə', MOUTH: 'aʊ',
+  },
+  raised: { PRICE: 'ʌɪ' },
+  hold: 0.6,
+  t: 'flap',
+  l: 'dark-coda',
+  th: 'fricative',
+  r: 'approximant',
+  prosody: { tune: 'fall', range: 4.5, declination: 2, rate: 1.1 },
+};
+
+export const INLAND_NORTH: Accent = {
+  id: 'inland-north',
+  name: 'Inland North (Chicago, Detroit)',
+  region: 'North America',
+  rhotic: true,
+  // the Northern Cities Shift: TRAP raised to eə, LOT fronted to a, THOUGHT lowered, DRESS and STRUT backed
+  sets: {
+    TRAP: 'eə', BATH: 'eə', LOT: 'a', PALM: 'a', THOUGHT: 'ɑ', CLOTH: 'ɑ', DRESS: 'ɜ', STRUT: 'ɔ', KIT: 'ɘ',
+  },
+  hold: 0.65,
+  t: 'flap',
+  l: 'dark-coda',
+  th: 'fricative',
+  r: 'approximant',
+  prosody: { tune: 'fall', range: 4, declination: 2, rate: 1.05 },
+};
+
+/* ---- more of Africa, Asia and the Caribbean ---- */
+
+export const FILIPINO: Accent = {
+  id: 'filipino',
+  name: 'Filipino',
+  region: 'Asia',
+  rhotic: true,
+  // a five-vowel system, rhotic with a tap, syllable-timed
+  sets: {
+    KIT: 'i', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɔ', CLOTH: 'ɔ', STRUT: 'a', FOOT: 'u', NURSE: 'ɛɾ',
+    FLEECE: 'i', FACE: 'e', PALM: 'a', THOUGHT: 'ɔ', GOAT: 'o', GOOSE: 'u', PRICE: 'aɪ', CHOICE: 'ɔɪ',
+    MOUTH: 'aʊ', NEAR: 'iɾ', SQUARE: 'ɛɾ', START: 'aɾ', NORTH: 'ɔɾ', FORCE: 'oɾ', CURE: 'uɾ', happY: 'i',
+    lettER: 'ɛɾ', commA: 'a',
+  },
+  hold: 0.5,
+  t: 'released',
+  l: 'clear',
+  th: 'stop',
+  r: 'tap',
+  prosody: { tune: 'fall', range: 4.5, declination: 1.5, rate: 1.05, stressRatio: 1.15 },
+};
+
+export const GHANAIAN: Accent = {
+  id: 'ghanaian',
+  name: 'Ghanaian',
+  region: 'Africa',
+  rhotic: false,
+  sets: {
+    KIT: 'i', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɔ', CLOTH: 'ɔ', STRUT: 'a', FOOT: 'u', NURSE: 'ɛ',
+    FLEECE: 'i', FACE: 'e', PALM: 'a', THOUGHT: 'ɔ', GOAT: 'o', GOOSE: 'u', PRICE: 'aɪ', CHOICE: 'ɔɪ',
+    MOUTH: 'aʊ', NEAR: 'ia', SQUARE: 'ɛ', START: 'a', NORTH: 'ɔ', FORCE: 'ɔ', CURE: 'ua', happY: 'i',
+    lettER: 'a', commA: 'a',
+  },
+  hold: 0.5,
+  t: 'released',
+  l: 'clear',
+  th: 'stop',
+  r: 'approximant',
+  prosody: { tune: 'fall', range: 5, declination: 1.5, rate: 1, stressRatio: 1.1 },
+};
+
+export const KENYAN: Accent = {
+  id: 'kenyan',
+  name: 'Kenyan',
+  region: 'Africa',
+  rhotic: false,
+  // five vowels, as in Swahili; th kept as a fricative
+  sets: {
+    KIT: 'i', DRESS: 'e', TRAP: 'a', BATH: 'a', LOT: 'ɔ', CLOTH: 'ɔ', STRUT: 'a', FOOT: 'u', NURSE: 'e',
+    FLEECE: 'i', FACE: 'e', PALM: 'a', THOUGHT: 'ɔ', GOAT: 'o', GOOSE: 'u', PRICE: 'aɪ', CHOICE: 'ɔɪ',
+    MOUTH: 'aʊ', NEAR: 'ia', SQUARE: 'ea', START: 'a', NORTH: 'ɔ', FORCE: 'ɔ', CURE: 'ua', happY: 'i',
+    lettER: 'a', commA: 'a',
+  },
+  hold: 0.5,
+  t: 'released',
+  l: 'clear',
+  th: 'fricative',
+  r: 'tap',
+  prosody: { tune: 'fall', range: 4, declination: 1.5, rate: 1, stressRatio: 1.15 },
+};
+
+export const TRINIDADIAN: Accent = {
+  id: 'trinidadian',
+  name: 'Trinidadian',
+  region: 'Caribbean',
+  rhotic: false,
+  sets: {
+    KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɒ', CLOTH: 'ɒ', STRUT: 'ɔ', FOOT: 'ʊ', NURSE: 'ɜ',
+    FLEECE: 'i', FACE: 'e', PALM: 'a', THOUGHT: 'ɒ', GOAT: 'o', GOOSE: 'u', PRICE: 'aɪ', CHOICE: 'ɒɪ',
+    MOUTH: 'ɔʊ', NEAR: 'iɛ', SQUARE: 'ɛ', START: 'a', NORTH: 'ɒ', FORCE: 'o', CURE: 'ʊə', happY: 'i',
+    lettER: 'a', commA: 'a',
+  },
+  hold: 0.5,
+  t: 'released',
+  l: 'clear',
+  th: 'stop',
+  r: 'approximant',
+  // a lively, wide melody
+  prosody: { tune: 'rise', range: 7, declination: 1.5, rate: 1.1, stressRatio: 1.3 },
+};
+
+/** The regions the built-in accents are grouped in, in display order. */
+export const ACCENT_REGIONS: readonly string[] = ['North America', 'England', 'Scotland, Wales and Ireland', 'Southern hemisphere', 'Africa', 'Caribbean', 'Asia'];
+
 /** The built-in accents, by id. */
 export const ACCENTS: Readonly<Record<string, Accent>> = Object.freeze(
   Object.fromEntries(
     [
-      GENERAL_AMERICAN, CANADIAN, CALIFORNIAN, NEW_YORK, SOUTHERN_US,
-      SOUTHERN_BRITISH, LONDON, NORTHERN_ENGLISH, GEORDIE, SCOTTISH, WELSH, IRISH, NORTHERN_IRISH,
-      AUSTRALIAN, NEW_ZEALAND, SOUTH_AFRICAN, NIGERIAN, JAMAICAN, INDIAN, SINGAPOREAN,
+      GENERAL_AMERICAN, CANADIAN, CALIFORNIAN, NEW_YORK, BOSTON, INLAND_NORTH, SOUTHERN_US,
+      RECEIVED_PRONUNCIATION, SOUTHERN_BRITISH, LONDON, WEST_COUNTRY, BRUMMIE, SCOUSE, NORTHERN_ENGLISH,
+      GEORDIE, SCOTTISH, WELSH, IRISH, NORTHERN_IRISH,
+      AUSTRALIAN, NEW_ZEALAND, SOUTH_AFRICAN,
+      NIGERIAN, GHANAIAN, KENYAN, JAMAICAN, TRINIDADIAN, INDIAN, SINGAPOREAN, FILIPINO,
     ].map((a) => [a.id, a]),
   ),
 );

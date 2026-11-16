@@ -799,7 +799,13 @@ const PARAMS: ParamSpec[] = [
   { name: 'glide', min: 0.005, max: 0.5, default: DEFAULTS.glide, curve: 'exp', unit: 's' },
   { name: 'body', min: 0, max: 2, default: 0 },
   { name: 'tension', min: 0, max: 1, default: 0.55 },
-  { name: 'roughness', min: 0, max: 1, default: 0.1 },
+  /*
+   * 0.02, not CHIMERA's 0.1. MEASURED on the pulse folds (docs/VOICE-NORMS.md): at 0.1 every body
+   * read 1.2 to 1.3 percent jitter and 3.8 to 4.8 percent shimmer, past the MDVP screening limits
+   * (1.04, 3.81) and heard as an old voice; at 0.02, 0.71 to 0.78 percent and 2.2 to 3.0 percent,
+   * near the healthy means (0.63, 2.0). Raise it for an older or rougher voice.
+   */
+  { name: 'roughness', min: 0, max: 1, default: 0.02 },
   { name: 'fry', min: 0, max: 1, default: 0 },
   { name: 'drift', min: 0, max: 20, default: 6, unit: 'cents' },
   { name: 'glottis', min: 0, max: 2, default: 2 },

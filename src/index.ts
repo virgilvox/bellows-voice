@@ -24,6 +24,7 @@ export {
   type SingResult,
   type SingerOptions,
 } from './singer';
+export { VOICE_PRESETS, SPEECH_HZ_BY_BODY, voicePreset, speechHzForBody, type VoicePreset, type VoiceGroup } from './voices';
 export { sungEvents, type SungEventOptions, type SungEvents, type SungWindow } from './sing';
 export * from './text';
 

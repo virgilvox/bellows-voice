@@ -1,6 +1,6 @@
 {
   "name": "bellows-voice",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "An articulatory singing and speaking voice for bellowsjs: a physical model of a singer, lyrics and text in eight English accents, and text to IPA.",
   "license": "MIT",
   "type": "module",
@@ -62,7 +62,8 @@
     "gen:plugin": "node scripts/gen-plugin.mjs",
     "gen:vocal": "node scripts/gen-vocal-tract.mjs",
     "gen:vocal:check": "node scripts/gen-vocal-tract.mjs --check",
-    "gen:vowels": "node scripts/gen-extra-vowels.mjs"
+    "gen:vowels": "node scripts/gen-extra-vowels.mjs",
+    "gen:calibrate": "node scripts/gen-calibrated-vowels.mjs"
   },
   "peerDependencies": {
     "bellowsjs": ">=0.5.0 <0.6.0"

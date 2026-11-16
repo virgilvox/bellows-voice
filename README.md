@@ -47,6 +47,16 @@ bellows-voice imports `bellowsjs` by name, so a page without a bundler maps that
 
 The other entries load the same way: `.../dist/text.js`, `.../dist/view.js`, `.../dist/engine.js`. unpkg serves the same files (`https://unpkg.com/bellows-voice@0.2/dist/index.js`).
 
+## Starter voices
+
+```js
+const soprano = singer(b, 'soprano');            // or 'bass', 'baritone', 'tenor', 'contralto', 'mezzo',
+const host = singer(b, 'narrator-female');       // 'narrator-male', 'pop-female', 'pop-male', 'child', 'rock', 'elder'
+host.speak('Good evening.');                     // at the voice's own speaking pitch
+```
+
+`VOICE_PRESETS` lists them, each with its group (male, female, child), the engine params, a speaking pitch inside the published range for its group, and the range it sings in. The values come from published norms and from measuring this voice against them; `docs/VOICE-NORMS.md` has the sources and the measurements.
+
 ## Accents
 
 ```js
@@ -54,14 +64,17 @@ const tenor = singer(b, { body: 0 }, { accent: 'southern-british' });
 tenor.sing('the water in the bath was far too hot', melody, { accent: 'scottish' });
 ```
 
-Twenty are built in:
+Thirty are built in, each with a `region` (`ACCENT_REGIONS`):
 
 | Region | Accents |
 |---|---|
-| North America | `general-american` (the default), `canadian`, `californian`, `new-york`, `southern-us` |
-| Britain and Ireland | `southern-british`, `london`, `northern-english`, `geordie`, `scottish`, `welsh`, `irish`, `northern-irish` |
+| North America | `general-american` (the default), `canadian`, `californian`, `new-york`, `boston`, `inland-north`, `southern-us` |
+| England | `received-pronunciation`, `southern-british`, `london`, `west-country`, `brummie`, `scouse`, `northern-english`, `geordie` |
+| Scotland, Wales and Ireland | `scottish`, `welsh`, `irish`, `northern-irish` |
 | Southern hemisphere | `australian`, `new-zealand`, `south-african` |
-| Africa, Asia, the Caribbean | `nigerian`, `jamaican`, `indian`, `singaporean` |
+| Africa | `nigerian`, `ghanaian`, `kenyan` |
+| Caribbean | `jamaican`, `trinidadian` |
+| Asia | `indian`, `singaporean`, `filipino` |
 
 Each is a broad transcription of the accent's mainstream form, from the published lexical-set tables (sources in `src/lyrics/accents.ts`), not a recording of any one speaker. An accent is plain data: each of Wells's lexical sets (KIT, BATH, GOAT, NURSE...) voiced as a vowel or a diphthong with its glide timing, whether r after a vowel is said, its t, l, th, r and h rules, vowels raised before voiceless consonants (Canadian "price" and "house"), and a speech melody: the final tune, the pitch range, the rate, and how much longer a stressed syllable is than an unstressed one (about twice in British or American English, nearly the same in the syllable-timed Englishes of India, Nigeria, Singapore and Jamaica). Spread a built-in to make your own:
 

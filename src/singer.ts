@@ -16,6 +16,7 @@ import { speechPlan } from './lyrics/speech';
 import { planSung, type PlanSungOptions } from './lyrics/sing';
 import { sungEvents, type SungWindow } from './sing';
 import { VOCAL_PLAN_LEAD, vocalGlideLead } from './engines/vocal-lead';
+import { speechHzForBody, voicePreset, type VoicePreset } from './voices';
 
 /** One note of a sung line. `note: null` is a rest: it takes time and no syllable. */
 export interface SingNote {
@@ -53,7 +54,7 @@ export interface SpeakOptions {
   dictionary?: PronouncingDictionary;
   /** Accent, over the singer's. Its prosody sets the melody and rate. */
   accent?: Accent | string;
-  /** Baseline pitch, Hz. Default 110. */
+  /** Baseline pitch, Hz. Default the singer's speechHz: its preset's, or the norm for its body. */
   hz?: number;
   /** Rate over the accent's own, 1 normal. */
   rate?: number;
@@ -85,6 +86,8 @@ export interface SingerOptions {
   accent?: Accent | string;
   /** Voices on the channel, as b.voice() takes it. */
   polyphony?: number;
+  /** speak()'s default pitch, Hz, over the preset's and the body's norm. */
+  speechHz?: number;
 }
 
 /**
@@ -110,14 +113,24 @@ export class Singer {
   dictionary: PronouncingDictionary | null;
   /** The accent every line is read in, unless a line names its own. */
   accent: Accent | string;
+  /** speak()'s default baseline pitch, Hz. */
+  speechHz: number;
+  /** The starter voice this singer was made from, if any. */
+  readonly preset: VoicePreset | undefined;
   private readonly key: string;
   private readonly offParam: () => void;
 
   constructor(
     private readonly b: Bellows,
-    params: Record<string, number> = {},
+    voice: Record<string, number> | string | VoicePreset = {},
     opts: SingerOptions = {},
   ) {
+    const preset = typeof voice === 'string' ? voicePreset(voice) : isPreset(voice) ? voice : undefined;
+    if (typeof voice === 'string' && !preset) {
+      throw new Error(`bellows-voice: no starter voice "${voice}"; see VOICE_PRESETS`);
+    }
+    const params: Record<string, number> = preset ? { ...preset.params } : { ...(voice as Record<string, number>) };
+    this.preset = preset;
     if (!listEngines().some((e) => e.id === 'vocal')) {
       throw new Error(
         "bellows-voice: this bellows instance has no 'vocal' engine. Load the voice first: " +
@@ -127,6 +140,7 @@ export class Singer {
     this.instrument = b.voice('vocal', params, opts.polyphony !== undefined ? { polyphony: opts.polyphony } : undefined);
     this.dictionary = opts.dictionary ?? null;
     this.accent = opts.accent ?? 'general-american';
+    this.speechHz = opts.speechHz ?? preset?.speechHz ?? speechHzForBody(params.body ?? 0);
     this.key = 'bellows-voice:' + this.instrument.channel;
     // what the engine itself does with a creation value that is not a number
     const own = (v: number | undefined) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
@@ -190,7 +204,7 @@ export class Singer {
       syllables.push(...part);
       questions.push(m[0].includes('?'));
     }
-    const plan = speechPlan(syllables, { hz: opts.hz, rate: opts.rate, prosody: accent.prosody }, questions);
+    const plan = speechPlan(syllables, { hz: opts.hz ?? this.speechHz, rate: opts.rate, prosody: accent.prosody }, questions);
     const notes: SingNote[] = plan.notes.map((n) =>
       n.rest ? { note: null, dur: { seconds: n.dur } } : { note: { hz: n.hz }, dur: { seconds: n.dur } },
     );
@@ -331,7 +345,15 @@ export class Singer {
   }
 }
 
-/** A singer on bellows instance `b`: b.voice('vocal', params) with sing() and speak(). */
-export function singer(b: Bellows, params: Record<string, number> = {}, opts: SingerOptions = {}): Singer {
-  return new Singer(b, params, opts);
+/**
+ * A singer on bellows instance `b`: b.voice('vocal', ...) with sing() and speak(). `voice` is the
+ * engine's params, or a starter voice by id ('soprano', 'narrator-female'; see VOICE_PRESETS) or
+ * as the preset itself.
+ */
+export function singer(b: Bellows, voice: Record<string, number> | string | VoicePreset = {}, opts: SingerOptions = {}): Singer {
+  return new Singer(b, voice, opts);
+}
+
+function isPreset(v: unknown): v is VoicePreset {
+  return typeof v === 'object' && v !== null && 'params' in v && 'speechHz' in v && 'group' in v;
 }

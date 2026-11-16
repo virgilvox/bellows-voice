@@ -121,8 +121,8 @@ describe('accents', () => {
 });
 
 describe('the accents of the wider world', () => {
-  it('has twenty, each named and with a prosody', () => {
-    expect(Object.keys(ACCENTS)).toHaveLength(20);
+  it('has thirty, each named and with a prosody', () => {
+    expect(Object.keys(ACCENTS)).toHaveLength(30);
     for (const a of Object.values(ACCENTS)) {
       expect(a.name.length).toBeGreaterThan(2);
       if (a.id !== 'general-american') expect(a.prosody, a.id).toBeDefined();
@@ -139,6 +139,14 @@ describe('the accents of the wider world', () => {
   it('Nigerian has no central vowels; Singaporean merges KIT with FLEECE', () => {
     expect(ipa('strut nurse comma', 'nigerian')).toBe('stɾɔt nɛs kɔ.ma');
     expect(read('kit', 'singaporean')[0].nucleus.ipa).toBe(read('fleece', 'singaporean')[0].nucleus.ipa);
+  });
+
+  it('Scouse merges NURSE with SQUARE; Boston fronts START and drops the r; Inland North raises TRAP', () => {
+    expect(read('nurse', 'scouse')[0].nucleus.ipa).toBe(read('square', 'scouse')[0].nucleus.ipa);
+    expect(ipa('car start', 'boston')).toBe('ka stat');
+    expect(read('trap', 'inland-north')[0].nucleus.ipa).toBe('eə');
+    // the West Country keeps its r
+    expect(ipa('car', 'west-country')).toBe('kaɹ');
   });
 
   it('Northern English and Geordie merge FOOT and STRUT', () => {

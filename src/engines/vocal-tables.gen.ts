@@ -131,10 +131,10 @@ export const VOCAL_BODIES: readonly VocalBodyTable[] = [
     vowelTargets: [
       [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN], // _
       [1.685, 2.022, 5.692, NaN, NaN, 0, -0.354, 2, 0, 1, NaN, NaN, 0.217, NaN, NaN, NaN, NaN], // ɑ
-      [1.516, 3.373, 6.016, NaN, NaN, 0.002, -0.16, 1.875, 0, 1, NaN, NaN, 0.328, NaN, NaN, NaN, NaN], // æ
-      [1.022, 1.955, 6.23, NaN, NaN, 0.002, 0.212, 0.76, 0, 0.607, NaN, NaN, 0.053, NaN, NaN, NaN, NaN], // ʌ
-      [1.182, 1.501, 6.115, NaN, NaN, 0, -0.328, 0.844, 0.31, 0.539, NaN, NaN, 0.175, NaN, NaN, NaN, NaN], // ɔ
-      [1.041, 3.403, 6.556, NaN, NaN, 0, 0.048, 1.519, 0, 1, NaN, NaN, 0.379, NaN, NaN, NaN, NaN], // ɛ
+      [1.71734, 4.3181, 5.50464, NaN, NaN, 0.002, -0.946147, 2.19916, 0.0417314, 1, NaN, NaN, 0.328, NaN, NaN, NaN, NaN], // æ
+      [1.02219, 1.76474, 6.05988, NaN, NaN, 0.002, 0.23676, 0.966674, -0.0037729, 0.607, NaN, NaN, 0.053, NaN, NaN, NaN, NaN], // ʌ
+      [1.84396, 1.3173, 5.83076, NaN, NaN, 0, -0.851506, 1.70254, 0.174709, 0.539, NaN, NaN, 0.175, NaN, NaN, NaN, NaN], // ɔ
+      [1.11739, 3.34821, 6.55346, NaN, NaN, 0, -0.216509, 1.94745, -0.0422592, 1, NaN, NaN, 0.379, NaN, NaN, NaN, NaN], // ɛ
       [0.976, 2.727, 7.285, 5.642, 8.632, 1, -0.9, 0.654, 0.592, 0.347, NaN, NaN, -0.921, NaN, NaN, NaN, NaN], // ɝ
       [0.575, 3.637, 7.419, NaN, NaN, 0, -0.001, 1.154, 0, 1, NaN, NaN, 0.357, NaN, NaN, NaN, NaN], // ɪ
       [0.413, 3.683, 7.739, NaN, NaN, 0, 0.514, 1.046, 0, 1, NaN, NaN, 0.798, NaN, NaN, NaN, NaN], // i
@@ -260,9 +260,9 @@ export const VOCAL_BODIES: readonly VocalBodyTable[] = [
       [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN], // _
       [1.682, 1.847, 5.832, NaN, NaN, 0, -0.665, 2, 0, 1, NaN, NaN, 0.523, NaN, NaN, NaN, NaN], // ɑ
       [1.483, 3.712, 6.328, NaN, NaN, 0, -0.094, 1.851, 0, 1, NaN, NaN, 0.854, NaN, NaN, NaN, NaN], // æ
-      [1.067, 1.87, 6.262, NaN, NaN, 0.002, 0.196, 0.985, 0, 1, NaN, NaN, 0.087, NaN, NaN, NaN, NaN], // ʌ
-      [1.256, 1.397, 6.219, NaN, NaN, 0, -0.619, 0.904, 0.281, 0.59, NaN, NaN, 0.254, NaN, NaN, NaN, NaN], // ɔ
-      [1.181, 3.1, 6.484, NaN, NaN, 0, -0.105, 1.642, 0, 1, NaN, NaN, 0.773, NaN, NaN, NaN, NaN], // ɛ
+      [1.28088, 1.62683, 5.87387, NaN, NaN, 0.002, 0.335575, 1.12359, -0.0348056, 1, NaN, NaN, 0.087, NaN, NaN, NaN, NaN], // ʌ
+      [2.18231, 1.18279, 5.42025, NaN, NaN, 0, -0.961013, 2.28849, 0.348209, 0.59, NaN, NaN, 0.254, NaN, NaN, NaN, NaN], // ɔ
+      [1.1329, 2.86028, 6.55673, NaN, NaN, 0, -0.332378, 2.22805, -0.127752, 1, NaN, NaN, 0.773, NaN, NaN, NaN, NaN], // ɛ
       [0.694, 2.581, 7.338, 5.71, 8.898, 1, -0.9, 0.657, 0.59, 0.349, NaN, NaN, -0.832, NaN, NaN, NaN, NaN], // ɝ
       [0.567, 3.647, 7.421, NaN, NaN, 0, 0.077, 1.147, 0, 1, NaN, NaN, 0.196, NaN, NaN, NaN, NaN], // ɪ
       [0.459, 3.754, 7.647, NaN, NaN, 0, 0.295, 1.092, 0, 1, NaN, NaN, 1.016, NaN, NaN, NaN, NaN], // i
@@ -388,9 +388,9 @@ export const VOCAL_BODIES: readonly VocalBodyTable[] = [
       [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN], // _
       [1.905, 1.651, 6.308, NaN, NaN, 0, -0.9, 2, 0.361, 0.952, NaN, NaN, -0.353, NaN, NaN, NaN, NaN], // ɑ
       [1.367, 3.496, 6.678, NaN, NaN, 0, -0.534, 1.601, 0.356, 0.548, NaN, NaN, -0.23, NaN, NaN, NaN, NaN], // æ
-      [0.861, 1.88, 7.088, NaN, NaN, 0, -0.189, 0.569, 0.369, 0.516, NaN, NaN, -0.157, NaN, NaN, NaN, NaN], // ʌ
-      [1.408, 1.2, 6.764, NaN, NaN, 0, -0.561, 0.762, 1.086, 0.461, NaN, NaN, -0.049, NaN, NaN, NaN, NaN], // ɔ
-      [1.071, 3.101, 6.836, NaN, NaN, 0, -0.339, 1.177, 0.355, 0.548, NaN, NaN, -0.168, NaN, NaN, NaN, NaN], // ɛ
+      [1.27917, 1.94179, 7.10892, NaN, NaN, 0, -1, 0.468459, 0.334422, 0.516, NaN, NaN, -0.157, NaN, NaN, NaN, NaN], // ʌ
+      [1.60487, 1.06182, 6.66595, NaN, NaN, 0, -0.481291, 0.829557, 1.11712, 0.461, NaN, NaN, -0.049, NaN, NaN, NaN, NaN], // ɔ
+      [1.35086, 3.05085, 7.03165, NaN, NaN, 0, -0.960103, 1.63754, 0.550585, 0.548, NaN, NaN, -0.168, NaN, NaN, NaN, NaN], // ɛ
       [0.05, 1.859, 7, 5.722, 9.357, 1, -0.9, 0.12, 1.4, 0.214, NaN, NaN, -1.288, NaN, NaN, NaN, NaN], // ɝ
       [0.489, 3.381, 7.692, NaN, NaN, 0, 0.005, 0.366, 0.001, 0.55, NaN, NaN, -0.025, NaN, NaN, NaN, NaN], // ɪ
       [0.096, 3.719, 7.754, NaN, NaN, 0.001, 0.095, 0.386, 0.004, 0.655, NaN, NaN, -0.001, NaN, NaN, NaN, NaN], // i

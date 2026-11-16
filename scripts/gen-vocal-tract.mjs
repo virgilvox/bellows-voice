@@ -32,6 +32,13 @@ const tuning = read('tuning-table.json');
 const layout = read('layout.json');
 /* Bellows' own vowels for other accents, solved from formant targets (scripts/gen-extra-vowels.mjs). */
 const extra = read('extra-vowels.json');
+/* General American vowels re-solved per body against Hillenbrand et al. (1995) (scripts/gen-calibrated-vowels.mjs). */
+let calibrated = { vowelTargetsByBody: { male: {}, female: {}, child: {} } };
+try {
+  calibrated = read('calibrated-vowels.json');
+} catch {
+  // before the first calibration run
+}
 
 const BODIES = ['male', 'female', 'child'];
 const ORDER = art.articulators.order;
@@ -60,8 +67,9 @@ function row(targets, keys) {
 }
 
 function vowelRow(body, ipa) {
-  // bellows' solved vowels win where CHIMERA's data also has a row (ɒ ɐ ɨ y ø œ ɯ ɤ): those are the ones measured at their targets
-  const vt = extra.vowelTargetsByBody[body][ipa] ?? art.vowelTargetsByBody[body][ipa];
+  // calibrated rows first (measured closer to human means), then bellows' solved vowels where CHIMERA's
+  // data also has a row (ɒ ɐ ɨ y ø œ ɯ ɤ: those are the ones measured at their targets), then CHIMERA's
+  const vt = calibrated.vowelTargetsByBody[body]?.[ipa] ?? extra.vowelTargetsByBody[body][ipa] ?? art.vowelTargetsByBody[body][ipa];
   if (!vt) throw new Error(`no vowel target ${body} ${ipa}`);
   const keys = [...VOWEL_KEYS];
   if ((vt.ttCurl ?? 0) > 0.05) keys.push('ttX', 'ttY');

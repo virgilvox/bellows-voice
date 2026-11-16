@@ -17,6 +17,7 @@ export { parseCmudict } from './lyrics/cmudict';
 export { planSung, type PlanSungOptions } from './lyrics/sing';
 export {
   ACCENTS,
+  ACCENT_REGIONS,
   GENERAL_AMERICAN,
   SOUTHERN_BRITISH,
   LONDON,
@@ -37,6 +38,16 @@ export {
   JAMAICAN,
   INDIAN,
   SINGAPOREAN,
+  RECEIVED_PRONUNCIATION,
+  SCOUSE,
+  BRUMMIE,
+  WEST_COUNTRY,
+  BOSTON,
+  INLAND_NORTH,
+  FILIPINO,
+  GHANAIAN,
+  KENYAN,
+  TRINIDADIAN,
   DEFAULT_PROSODY,
   resolveAccent,
   applyAccent,
@@ -61,3 +72,6 @@ export type {
   SungPhrase,
   SungPlan,
 } from './lyrics/types';
+
+/* starter voices are data too: what a UI lists, with no audio */
+export { VOICE_PRESETS, SPEECH_HZ_BY_BODY, voicePreset, speechHzForBody, type VoicePreset, type VoiceGroup } from './voices';

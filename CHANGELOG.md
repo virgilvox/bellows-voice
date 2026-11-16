@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.3.0
+
+The voice measured against human norms, and tuned to them (docs/VOICE-NORMS.md).
+
+- **Healthier default source.** `roughness` defaults to 0.02, from 0.1. MEASURED: at 0.1 every body
+  read 1.2 to 1.3 percent jitter and 3.8 to 4.8 percent shimmer, past the MDVP screening limits and
+  heard as an older voice; at 0.02, 0.71 to 0.78 and 2.2 to 3.0 percent, near the healthy means.
+  Every render that relied on the default changes; set `roughness: 0.1` for the old texture.
+- **Vowels calibrated per body** against Hillenbrand et al. (1995): /ɔ æ ʌ ɛ/ re-solved for the
+  male, female and child bodies against the men's, women's and children's means
+  (`scripts/gen-calibrated-vowels.mjs`), kept only where they measure closer and no rougher (ten of
+  fifteen; the open /ɑ/ shapes that fit better all read rougher). All ten General American
+  monophthongs now sit within 4.6 percent RMS in F1 and 3.6 percent in F2 on every body, from up to
+  5.8; `voice-norms.test.ts` gates it.
+- **Starter voices**: `VOICE_PRESETS` and `singer(b, 'soprano')`. Narrators at the conversational
+  means, bass, baritone, tenor, contralto, mezzo-soprano and soprano with their classical ranges and
+  vibrato, pop voices, a child, a rock voice and an elder, each with a speaking pitch inside Baken's
+  published range for its group.
+- **speak() at the voice's own pitch**: a preset's `speechHz`, or the norm for the body (115, 199,
+  240 Hz) where it was 110 Hz for every voice. `singer.speechHz` and `opts.speechHz` set it.
+- **Ten more accents**, thirty in all: Received Pronunciation, Scouse, Brummie, West Country,
+  Boston, Inland North (the Northern Cities Shift), Filipino, Ghanaian, Kenyan and Trinidadian.
+  Every accent has a `region`; `ACCENT_REGIONS` lists them in order.
+
 ## 0.2.1
 
 - README: how to load the voice in a single HTML file from a CDN, with the import map that gives the
