@@ -35,7 +35,7 @@ bellows-voice imports `bellowsjs` by name, so a page without a bundler maps that
 </script>
 <script type="module">
   import { Bellows } from 'bellowsjs';
-  import { voice, singer } from 'https://cdn.jsdelivr.net/npm/bellows-voice@0.3/dist/index.js';
+  import { voice, singer } from 'https://cdn.jsdelivr.net/npm/bellows-voice@0.4/dist/index.js';
 
   document.querySelector('button').onclick = async () => {
     const b = await Bellows.boot({ plugins: [voice] });
@@ -45,7 +45,7 @@ bellows-voice imports `bellowsjs` by name, so a page without a bundler maps that
 <button>Speak</button>
 ```
 
-The other entries load the same way: `.../dist/text.js`, `.../dist/view.js`, `.../dist/engine.js`. unpkg serves the same files (`https://unpkg.com/bellows-voice@0.3/dist/index.js`).
+The other entries load the same way: `.../dist/text.js`, `.../dist/view.js`, `.../dist/engine.js`. unpkg serves the same files (`https://unpkg.com/bellows-voice@0.4/dist/index.js`).
 
 ## Starter voices
 
@@ -64,7 +64,7 @@ const tenor = singer(b, { body: 0 }, { accent: 'southern-british' });
 tenor.sing('the water in the bath was far too hot', melody, { accent: 'scottish' });
 ```
 
-Thirty are built in, each with a `region` (`ACCENT_REGIONS`):
+Thirty-one are built in, each with a `region` (`ACCENT_REGIONS`):
 
 | Region | Accents |
 |---|---|
@@ -75,8 +75,9 @@ Thirty are built in, each with a `region` (`ACCENT_REGIONS`):
 | Africa | `nigerian`, `ghanaian`, `kenyan` |
 | Caribbean | `jamaican`, `trinidadian` |
 | Asia | `indian`, `singaporean`, `filipino` |
+| Europe (English as a second language) | `russian` |
 
-Each is a broad transcription of the accent's mainstream form, from the published lexical-set tables (sources in `src/lyrics/accents.ts`), not a recording of any one speaker. An accent is plain data: each of Wells's lexical sets (KIT, BATH, GOAT, NURSE...) voiced as a vowel or a diphthong with its glide timing, whether r after a vowel is said, its t, l, th, r and h rules, vowels raised before voiceless consonants (Canadian "price" and "house"), and a speech melody: the final tune, the pitch range, the rate, and how much longer a stressed syllable is than an unstressed one (about twice in British or American English, nearly the same in the syllable-timed Englishes of India, Nigeria, Singapore and Jamaica). Spread a built-in to make your own:
+Each is a broad transcription of the accent's mainstream form, from the published lexical-set tables (sources in `src/lyrics/accents.ts`), not a recording of any one speaker. An accent is plain data: each of Wells's lexical sets (KIT, BATH, GOAT, NURSE...) voiced as a vowel or a diphthong with its glide timing, whether r after a vowel is said, its t, l, th, r and h rules, consonants it swaps (Russian w as v) and whether it devoices a word's last consonant, vowels raised before voiceless consonants (Canadian "price" and "house"), and a speech melody: the final tune, the pitch range, the rate, and how much longer a stressed syllable is than an unstressed one (about twice in British or American English, nearly the same in the syllable-timed Englishes of India, Nigeria, Singapore and Jamaica). Spread a built-in to make your own:
 
 ```js
 import { ACCENTS } from 'bellows-voice';

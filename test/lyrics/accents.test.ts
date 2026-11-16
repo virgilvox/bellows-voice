@@ -121,8 +121,8 @@ describe('accents', () => {
 });
 
 describe('the accents of the wider world', () => {
-  it('has thirty, each named and with a prosody', () => {
-    expect(Object.keys(ACCENTS)).toHaveLength(30);
+  it('has thirty-one, each named and with a prosody', () => {
+    expect(Object.keys(ACCENTS)).toHaveLength(31);
     for (const a of Object.values(ACCENTS)) {
       expect(a.name.length).toBeGreaterThan(2);
       if (a.id !== 'general-american') expect(a.prosody, a.id).toBeDefined();
@@ -147,6 +147,14 @@ describe('the accents of the wider world', () => {
     expect(read('trap', 'inland-north')[0].nucleus.ipa).toBe('eə');
     // the West Country keeps its r
     expect(ipa('car', 'west-country')).toBe('kaɹ');
+  });
+
+  it('Russian: th as s and z, w as v, final voiced consonants devoiced, KIT with FLEECE', () => {
+    expect(ipa('think this', 'russian')).toBe('siŋk zis');
+    expect(ipa('water', 'russian')).toBe('vɔ.tɛɾ');
+    // "dog" ends on k, "dance" keeps its s; a voiceless ending is left alone
+    expect(ipa('dog dance', 'russian')).toBe('dɔk dans');
+    expect(read('kit', 'russian')[0].nucleus.ipa).toBe(read('fleece', 'russian')[0].nucleus.ipa);
   });
 
   it('Northern English and Geordie merge FOOT and STRUT', () => {

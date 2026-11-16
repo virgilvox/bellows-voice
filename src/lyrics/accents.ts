@@ -23,7 +23,9 @@
  * for India, Deterding (2007) for Singapore, Upton (2004) for traditional RP, Wells (1982) and Watson
  * (2007) for Liverpool, Thorne (2003) for Birmingham, Wagner (2004) for the West Country, Labov,
  * Ash and Boberg (2006) for Boston and the Northern Cities Shift, Tayao (2004) for the Philippines,
- * Huber (2004) for Ghana, Schmied (2004) for East Africa and Youssef and James (2004) for Trinidad, as summarized in those articles and the Handbook of
+ * Huber (2004) for Ghana, Schmied (2004) for East Africa, Youssef and James (2004) for Trinidad
+ * and, for Russian speakers of English, Swan and Smith's Learner English (2001, the Russian chapter
+ * by Monk and Burak), as summarized in those articles and the Handbook of
  * Varieties of English (Kortmann and Schneider, 2004). They are broad transcriptions of each accent's mainstream form, not
  * of any one speaker.
  */
@@ -58,7 +60,9 @@ export type ThRule =
   /** As stops: "think" tink, "this" dis (Irish, many Caribbean and African accents). */
   | 'stop'
   /** Fronted: "think" fink, "brother" bruvver; "this" keeps a d at the start of a word (London). */
-  | 'front';
+  | 'front'
+  /** As sibilants: "think" sink, "this" zis (Russian, French and German speakers of English). */
+  | 'sibilant';
 /** How /r/ comes out where it is said. */
 export type RRule = 'approximant' | 'tap';
 
@@ -102,6 +106,13 @@ export interface Accent {
   r: RRule;
   /** Drops h at the start of a word ("house" ouse). */
   hDrop?: boolean;
+  /**
+   * Devoices a voiced stop or fricative that ends a word: "bed" as bet, "his" as hiss (Russian,
+   * German, Polish and Dutch speakers of English carry this over from their first language).
+   */
+  devoiceFinal?: boolean;
+  /** Consonants said as others everywhere: { w: 'v' } for "west" as vest. */
+  replace?: Readonly<Record<string, string>>;
   /**
    * Realizations used instead of `sets` when the vowel comes before a voiceless consonant in the
    * same word: Canadian raising, "price" and "house" with a raised start where "prize" and "how"
@@ -694,8 +705,35 @@ export const TRINIDADIAN: Accent = {
   prosody: { tune: 'rise', range: 7, declination: 1.5, rate: 1.1, stressRatio: 1.3 },
 };
 
+/* ---- Europe: English as a second language ---- */
+
+export const RUSSIAN: Accent = {
+  id: 'russian',
+  name: 'Russian',
+  region: 'Europe',
+  rhotic: true,
+  // Russian's five vowels and ɨ: KIT and FLEECE merge, TRAP is ɛ, STRUT a, and unstressed vowels keep
+  // more of their quality than English reduction leaves them
+  sets: {
+    KIT: 'i', DRESS: 'ɛ', TRAP: 'ɛ', BATH: 'a', LOT: 'ɔ', CLOTH: 'ɔ', STRUT: 'a', FOOT: 'u', NURSE: 'ɵɾ',
+    FLEECE: 'i', FACE: 'ei', PALM: 'a', THOUGHT: 'ɔ', GOAT: 'o', GOOSE: 'u', PRICE: 'aɪ', CHOICE: 'ɔɪ',
+    MOUTH: 'aʊ', NEAR: 'i', SQUARE: 'ɛ', START: 'a', NORTH: 'ɔ', FORCE: 'ɔ', CURE: 'u', happY: 'i',
+    lettER: 'ɛɾ', commA: 'a',
+  },
+  hold: 0.5,
+  t: 'released',
+  // Russian's hard l is velarized everywhere
+  l: 'dark',
+  th: 'sibilant',
+  r: 'tap',
+  // no w in Russian: "west" as vest
+  replace: { w: 'v' },
+  devoiceFinal: true,
+  prosody: { tune: 'fall', range: 6, declination: 2.5, rate: 0.95, stressRatio: 1.7 },
+};
+
 /** The regions the built-in accents are grouped in, in display order. */
-export const ACCENT_REGIONS: readonly string[] = ['North America', 'England', 'Scotland, Wales and Ireland', 'Southern hemisphere', 'Africa', 'Caribbean', 'Asia'];
+export const ACCENT_REGIONS: readonly string[] = ['North America', 'England', 'Scotland, Wales and Ireland', 'Southern hemisphere', 'Africa', 'Caribbean', 'Asia', 'Europe'];
 
 /** The built-in accents, by id. */
 export const ACCENTS: Readonly<Record<string, Accent>> = Object.freeze(
@@ -706,6 +744,7 @@ export const ACCENTS: Readonly<Record<string, Accent>> = Object.freeze(
       GEORDIE, SCOTTISH, WELSH, IRISH, NORTHERN_IRISH,
       AUSTRALIAN, NEW_ZEALAND, SOUTH_AFRICAN,
       NIGERIAN, GHANAIAN, KENYAN, JAMAICAN, TRINIDADIAN, INDIAN, SINGAPOREAN, FILIPINO,
+      RUSSIAN,
     ].map((a) => [a.id, a]),
   ),
 );
@@ -804,6 +843,8 @@ function dropCodaR(syl: Syllable, linked: boolean): void {
   }
 }
 
+const DEVOICE: Readonly<Record<string, string>> = { b: 'p', d: 't', g: 'k', v: 'f', z: 's', ð: 'θ', ʒ: 'ʃ', dʒ: 'tʃ' };
+
 function consonants(syl: Syllable, accent: Accent, wordStart: boolean): void {
   const parts: Segment[][] = [syl.onset, syl.coda];
   for (const segs of parts) {
@@ -816,8 +857,21 @@ function consonants(syl: Syllable, accent: Accent, wordStart: boolean): void {
       } else if (accent.th === 'front') {
         if (s.ipa === 'θ') s.ipa = 'f';
         else if (s.ipa === 'ð') s.ipa = first ? 'd' : 'v';
+      } else if (accent.th === 'sibilant') {
+        if (s.ipa === 'θ') s.ipa = 's';
+        else if (s.ipa === 'ð') s.ipa = 'z';
       }
       if (accent.r === 'tap' && s.ipa === 'ɹ') s.ipa = 'ɾ';
+      const swap = accent.replace?.[s.ipa];
+      if (swap !== undefined) s.ipa = swap;
+    }
+  }
+  // word-final devoicing: the last consonants of a word, back to the first that is not voiced
+  if (accent.devoiceFinal && syl.wordEnd) {
+    for (let k = syl.coda.length - 1; k >= 0; k--) {
+      const v = DEVOICE[syl.coda[k].ipa];
+      if (v === undefined) break;
+      syl.coda[k].ipa = v;
     }
   }
   if (accent.hDrop && wordStart && syl.onset.length > 0 && syl.onset[0].ipa === 'h') syl.onset.shift();

@@ -48,6 +48,7 @@ export {
   GHANAIAN,
   KENYAN,
   TRINIDADIAN,
+  RUSSIAN,
   DEFAULT_PROSODY,
   resolveAccent,
   applyAccent,

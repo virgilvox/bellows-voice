@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+- **Russian**, the first accent of English as a second language, in a new Europe region: KIT with
+  FLEECE, TRAP as ɛ, a tapped r, a dark l everywhere, and three rules other accents can use too:
+- `th: 'sibilant'`: "think" as sink, "this" as zis (Russian, French and German speakers).
+- `replace`: consonants said as others everywhere, `{ w: 'v' }` for "west" as vest.
+- `devoiceFinal`: a voiced stop or fricative ending a word is devoiced, "bed" as bet, "dog" as dok.
+
 ## 0.3.0
 
 The voice measured against human norms, and tuned to them (docs/VOICE-NORMS.md).
