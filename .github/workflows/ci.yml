@@ -29,6 +29,8 @@ jobs:
         run: node scripts/gen-plugin.mjs --check
       - name: vocal tables are in sync with their data
         run: node scripts/gen-vocal-tract.mjs --check
+      - name: calibrated vowels reproduce from CHIMERA's rows and Hillenbrand's means
+        run: node scripts/gen-calibrated-vowels.mjs --check
       - name: test
         run: npm test
       - name: build

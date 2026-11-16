@@ -57,6 +57,22 @@ export { estimateFormants, rng } from 'bellowsjs';`,
     logLevel: 'error',
   });
   const m = await import(pathToFileURL(outfile).href);
+  /*
+   * Start from CHIMERA's rows, not the generated tables, which already hold the last calibration: so a
+   * run measures the same "before" every time and --check can tell whether the file is current. The
+   * row is built as gen-vocal-tract.mjs builds a vowel's (its keys, the tip only for a curled tongue).
+   */
+  const art = JSON.parse(readFileSync(join(pkg, 'data/vocal/chimera-articulation.json'), 'utf8'));
+  for (const [b, name] of BODIES.entries()) {
+    for (const ipa of Object.keys(HILLENBRAND)) {
+      const vt = art.vowelTargetsByBody[name][ipa];
+      const keys = [...KEYS];
+      if ((vt.ttCurl ?? 0) > 0.05) keys.push('ttX', 'ttY');
+      m.VOCAL_BODIES[b].vowelTargets[m.VOCAL_TABLE_PHONEMES.indexOf(ipa)] = Array.from(m.VOCAL_ARTICULATOR_NAMES, (k) =>
+        keys.includes(k) && vt[k] !== undefined ? vt[k] : NaN,
+      );
+    }
+  }
   const posture = (body, ipa) => {
     const row = m.VOCAL_BODIES[body].vowelTargets[m.VOCAL_TABLE_PHONEMES.indexOf(ipa)];
     return Float64Array.from(m.VOCAL_NEUTRAL, (n, k) => (row[k] === row[k] ? row[k] : n));
