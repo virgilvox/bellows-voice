@@ -134,7 +134,9 @@ export class Singer {
     if (!listEngines().some((e) => e.id === 'vocal')) {
       throw new Error(
         "bellows-voice: this bellows instance has no 'vocal' engine. Load the voice first: " +
-          'Bellows.boot({ plugins: [voice] }) or await b.use(voice).',
+          'Bellows.boot({ plugins: [voice] }) or await b.use(voice). If it is loaded, the page has two ' +
+          'copies of bellowsjs (a bundler that pre-bundles bellows-voice with its own, or a CDN page ' +
+          "without an import map for 'bellowsjs'), and the voice cannot see the one that loaded it.",
       );
     }
     this.instrument = b.voice('vocal', params, opts.polyphony !== undefined ? { polyphony: opts.polyphony } : undefined);

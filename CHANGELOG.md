@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1
+
+- singer() names the likely cause when the voice is loaded but cannot be found: two copies of
+  bellowsjs on the page (a bundler pre-bundling bellows-voice with its own copy, as Vite's dev
+  server does unless `optimizeDeps.exclude: ['bellows-voice']`, or a CDN page without an import
+  map). No other changes.
+
 ## 0.4.0
 
 - **Russian**, the first accent of English as a second language, in a new Europe region: KIT with

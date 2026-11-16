@@ -57,6 +57,16 @@ host.speak('Good evening.');                     // at the voice's own speaking 
 
 `VOICE_PRESETS` lists them, each with its group (male, female, child), the engine params, a speaking pitch inside the published range for its group, and the range it sings in. The values come from published norms and from measuring this voice against them; `docs/VOICE-NORMS.md` has the sources and the measurements.
 
+## With Vite
+
+Vite's dev server pre-bundles dependencies, and would fold its own copy of bellowsjs into
+bellows-voice, which then cannot see the plugin your copy loaded. Keep it out of the pre-bundle:
+
+```js
+// vite.config.js
+export default { optimizeDeps: { exclude: ['bellows-voice'] } };
+```
+
 ## Accents
 
 ```js
