@@ -35,7 +35,7 @@ bellows-voice imports `bellowsjs` by name, so a page without a bundler maps that
 </script>
 <script type="module">
   import { Bellows } from 'bellowsjs';
-  import { voice, singer } from 'https://cdn.jsdelivr.net/npm/bellows-voice@0.2/dist/index.js';
+  import { voice, singer } from 'https://cdn.jsdelivr.net/npm/bellows-voice@0.3/dist/index.js';
 
   document.querySelector('button').onclick = async () => {
     const b = await Bellows.boot({ plugins: [voice] });
@@ -45,7 +45,7 @@ bellows-voice imports `bellowsjs` by name, so a page without a bundler maps that
 <button>Speak</button>
 ```
 
-The other entries load the same way: `.../dist/text.js`, `.../dist/view.js`, `.../dist/engine.js`. unpkg serves the same files (`https://unpkg.com/bellows-voice@0.2/dist/index.js`).
+The other entries load the same way: `.../dist/text.js`, `.../dist/view.js`, `.../dist/engine.js`. unpkg serves the same files (`https://unpkg.com/bellows-voice@0.3/dist/index.js`).
 
 ## Starter voices
 
