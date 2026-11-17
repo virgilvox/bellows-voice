@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.0
+
+- **Final consonants in speech.** `speak()` dropped the consonants that end a phrase, so a word said
+  alone lost its coda: "hot" as "haw", "trade" as "tray", "board" as "bou". The last syllable's
+  nuclear tone splits it into two notes, and its coda went on the second, a melisma, where the
+  sung planner never reads it. It now stays on the first, as a sung melisma's does.
+- **General American before r.** "fair", "chair", "board", "roar", "near" and "poor" no longer glide
+  through a tense vowel (feɪɹ, boʊɹd): General American now realizes NEAR, SQUARE, FORCE and CURE as
+  ɪ ɛ ɔ ʊ before r, as CMUdict writes them (pre-rhotic neutralization).
+- **Beatbox.** `singer.beatbox(pattern, { bpm, swing, repeat })`: twelve drum sounds made on the
+  tract with the airstreams beatboxers use (ejective kick and rimshot, pulmonic hats and snares, an
+  inward snare, tongue click and lip pop, a hummed bass), `BEAT_PRESETS`, `VOCAL_BEATS`, `parseBeat`,
+  `formatBeat`. After CHIMERA's beatbox; the breath key, the ejective's push through the release,
+  the kick's raised tongue body (MEASURED: 21 cmH2O behind the lips, from 7) and two sounds are new.
+- **`mic` param**, a close directional microphone: it adds the near field's flow term, dU/dt +
+  (c / 2r) U, so it hears the air of kicks and plosives. 0, the default, leaves the output exactly as
+  it was. A `beatboxer` starter voice uses 0.8.
+- **The mouth view** draws beats (`TractModel.target('beat:B')`) and reports the narrowest point
+  (`shape().constriction`).
+- `docs/HOW-IT-WORKS.md` maps the voice from text to air, with its mathematics and sources.
+
+
 ## 0.4.1
 
 - singer() names the likely cause when the voice is loaded but cannot be found: two copies of

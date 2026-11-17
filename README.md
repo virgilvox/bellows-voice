@@ -94,6 +94,22 @@ import { ACCENTS } from 'bellows-voice';
 const mine = { ...ACCENTS.irish, id: 'mine', sets: { ...ACCENTS.irish.sets, FACE: 'eɪ' } };
 ```
 
+## Beatbox
+
+The same tract makes drum sounds the way beatboxers do: an ejective kick (the glottis shut, the larynx
+rising like a piston behind the lips), pulmonic hats and snares, an inward snare drawn in through the
+mouth, tongue clicks and lip pops, and a hummed bass. One step a sixteenth; `.` rests, `|` marks a bar,
+`>` accents, `m:43` hums MIDI note 43.
+
+```js
+const bb = singer(b, 'beatboxer');   // a close microphone: it hears the air of each kick
+bb.beatbox('B . t . | Pf . t . | B B t . | ^K . t tss', { bpm: 96, swing: 0.1, repeat: 4 });
+```
+
+`BEAT_PRESETS` has eight patterns and `VOCAL_BEATS` lists every sound with its airstream and a line on
+how the mouth makes it. Any voice can beatbox; the `mic` param (0 to 1) sets how close the microphone
+is, from the far field to a cardioid 2 cm from the lips.
+
 ## Text to IPA, without audio
 
 ```js
@@ -116,6 +132,10 @@ tract.target('i');                        // follow the plan's spans as they pla
 tract.step(1 / 60);                       // articulators move at the engine's speeds
 const { upper, lower, velumPort, lipArea } = tract.shape();   // centimetres, glottis to lips
 ```
+
+`target()` also takes a beat from a beatbox line's spans (`'beat:B'`), with the larynx raised for an
+ejective and the velum down for the hum, and `shape().constriction` is the narrowest point, where the
+sound is made.
 
 ## Rendering
 
