@@ -91,8 +91,10 @@ export function speechPlan(
         // the tone moves inside the syllable: its first half at the accent, the rest carried to the end tone
         const first = (0.45 * vowel) / rate;
         const second = (0.55 * vowel + consonants) / rate;
-        sylOut.push({ ...syl, coda: [], phraseEnd: false, wordEnd: false });
-        sylOut.push({ text: '~', onset: [], nucleus: { ...syl.nucleus }, coda: syl.coda, melisma: true, wordEnd: syl.wordEnd, phraseEnd: syl.phraseEnd });
+        // the coda stays on the syllable that starts the chain, as a sung melisma's does (read.ts):
+        // planSung sounds it after the chain's last note, and reads a melisma's own coda never
+        sylOut.push({ ...syl, phraseEnd: false, wordEnd: false });
+        sylOut.push({ text: '~', onset: [], nucleus: { ...syl.nucleus }, coda: [], melisma: true, wordEnd: syl.wordEnd, phraseEnd: syl.phraseEnd });
         out.push({ time: t, dur: first, hz: hz * 2 ** (pitches[k] / 12) });
         out.push({ time: t + first, dur: second, hz: hz * 2 ** (endTone / 12) });
         t += first + second;

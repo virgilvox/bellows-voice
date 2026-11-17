@@ -224,6 +224,26 @@ describe('speech', () => {
     expect(even[0].dur + even[1].dur).toBeCloseTo(timed[0].dur + timed[1].dur, 9);
   });
 
+  it('sounds the last syllable of a phrase to its final consonants', () => {
+    // the tone moves inside the last syllable, and its coda still closes it (hot, not "haw")
+    const spoken = (text: string, questions: boolean[] = []): string => {
+      const sp = speechPlan(lyricsToSyllables(text), {}, questions);
+      const plan = planSung(
+        sp.notes.filter((n) => !n.rest),
+        sp.syllables,
+        { consonantScale: 1 },
+      );
+      return plan.phrases.map((p) => p.spans.map((s) => s.ipa).join('')).join('|');
+    };
+    expect(spoken('hot')).toBe('hɑt');
+    expect(spoken('trade')).toBe('tɹeid');
+    expect(spoken('start')).toBe('stɑɹt');
+    expect(spoken('board')).toBe('bouɹd');
+    expect(spoken('roar')).toBe('ɹouɹ');
+    expect(spoken('start the car, now go home')).toBe('stɑɹtðəkɑɹ|naʊgouhoum');
+    expect(spoken('is it hot', [true])).toBe('ɪzɪthɑt');
+  });
+
   it('rests between phrases and carries the last vowel as a melisma', () => {
     const plan = speechPlan(read('far, away'));
     expect(plan.notes.some((n) => n.rest)).toBe(true);
