@@ -49,6 +49,7 @@ export const VOCAL_BEATS: readonly VocalBeat[] = [
   { id: 'm', name: 'Hum', role: 'bass', airstream: 'voiced', hint: 'Hummed bass note through the nose', sustained: true },
   { id: 'ch', name: 'Closed hat', role: 'hat', airstream: 'pulmonic', hint: 'Tongue-blade release into a short hush', sustained: false },
   { id: 'Psh', name: 'Psh snare', role: 'snare', airstream: 'pulmonic', hint: 'Lips burst into a rounded hush', sustained: false },
+  { id: 'in', name: 'Breath in', role: 'rest', airstream: 'ingressive', hint: 'A quick breath in through an open mouth, as between phrases', sustained: true },
 ];
 
 /** Where the beats start on the `phoneme` parameter: after the table phonemes. */

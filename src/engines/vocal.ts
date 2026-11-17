@@ -104,6 +104,7 @@ import { CM_H2O, SOUND_SPEED } from '../dsp/air';
 import { GLOTTIS_GEOMETRIC, GLOTTIS_PULSE, GLOTTIS_SELF_OSCILLATING, JunctionAirway, ductMin } from '../dsp/junction-airway';
 import { VOCAL_DEFAULT_PHONEME } from './vocal-phonemes';
 import { VOCAL_SOUND_COUNT } from './vocal-beats';
+import { settingOffsets } from './vocal-settings';
 import { VOCAL_BODIES, VOCAL_NEUTRAL } from './vocal-tables.gen';
 import { ART, ARTICULATORS } from './vocal-articulators';
 import { ARTICULATOR_MAX, ARTICULATOR_RATE, ARTICULATOR_TARGET_MIN, LIP_COMPRESSED, VocalPlanner, restTipFrom } from './vocal-planner';
@@ -206,6 +207,13 @@ class VocalVoice implements Voice {
   private readonly beatOn = new Uint8Array(STEPS + 1);
   private lungFactor = 1;
   private beatLine = 0;
+  /* Voice settings (Laver 1980: long-term postures over every sound) and anatomy. */
+  private readonly setting = { jawSet: 0, tongueFront: 0, tongueHigh: 0, lipRound: 0, lipOpen: 0, larynxSet: 0, nasal: 0, twang: 0, throat: 0 };
+  /** Each articulator's offset from the settings; a consonant holding the articulator takes it back. */
+  private readonly setOff = new Float64Array(ARTICULATORS);
+  /** Anatomy: the whole tract's length and the pharynx's, factors on the body's. */
+  private size = 1;
+  private pharynxScale = 1;
   /** A contact's new position for each axis (x then y), for CascadeBank.placeFrom. */
   private readonly placed = new Float64Array(2);
   /** The time of the articulator step or block being computed, s (a field: no double crosses a call). */
@@ -279,7 +287,9 @@ class VocalVoice implements Voice {
   constructor(sampleRate: number, params: Record<string, number>, rng: NamedRng) {
     this.sr = sampleRate;
     this.roofs = VOCAL_BODIES.map((t) => new VocalRoof(t));
-    this.air = new JunctionAirway(sampleRate, gridSections(sampleRate, VOCAL_BODIES[0].minLength), rng);
+    // room for the largest head (size 1.25): a longer tract with too few sections went into the uniform
+    // back duct and bent the area function (MEASURED: F2 at 0.756 of the size-1 value at size 1.2, not 0.833)
+    this.air = new JunctionAirway(sampleRate, gridSections(sampleRate, VOCAL_BODIES[0].minLength * 1.25), rng);
     this.drive = new VocalDrive(sampleRate);
     this.blk = this.air.block;
     this.stepEvery = 2 * this.blk;
@@ -398,6 +408,34 @@ class VocalVoice implements Voice {
       case 'mic':
         this.air.mic = clamp(value, 0, 1);
         return;
+      case 'cheeks':
+        this.air.cheeks = clamp(value, 0, 1);
+        return;
+      case 'piriform':
+        this.air.piriform = value >= 0.5 ? 1 : 0;
+        return;
+      case 'size':
+        this.size = clamp(value, 0.8, 1.25);
+        this.applyBody();
+        return;
+      case 'pharynx':
+        this.pharynxScale = clamp(value, 0.8, 1.25);
+        return;
+      case 'jawSet':
+      case 'tongueFront':
+      case 'tongueHigh':
+      case 'lipRound':
+      case 'lipOpen':
+      case 'larynxSet':
+      case 'throat':
+        this.setting[name] = clamp(value, -1, 1);
+        this.settings();
+        return;
+      case 'nasal':
+      case 'twang':
+        this.setting[name] = clamp(value, 0, 1);
+        this.settings();
+        return;
       case 'tuning':
         this.tuning = clamp(value, 0, 1);
         return;
@@ -475,7 +513,7 @@ class VocalVoice implements Voice {
     const A = VOCAL_BODIES[this.bLo];
     const B = VOCAL_BODIES[this.bLo + 1];
     const w = this.bW;
-    this.k = A.k * (1 - w) + B.k * w;
+    this.k = (A.k * (1 - w) + B.k * w) * this.size;
     this.planner.setBody(b);
     const lo = this.bLo;
     const air = this.air;
@@ -505,11 +543,14 @@ class VocalVoice implements Voice {
     const B = VOCAL_BODIES[this.bLo + 1];
     const w = this.bW;
     const k = this.k;
-    const pharynx = A.pharynxScale * (1 - w) + B.pharynxScale * w;
+    const ps = this.pharynxScale;
+    const pharynx = (A.pharynxScale * (1 - w) + B.pharynxScale * w) * ps;
     const tongue = A.tongueRadius * (1 - w) + B.tongueRadius * w;
     const lips = LIP_WIDTH[this.bLo] * (1 - w) + LIP_WIDTH[this.bLo + 1] * w;
-    const minLength = A.minLength * (1 - w) + B.minLength * w;
-    const neutralPharynx = A.neutralPharynx * (1 - w) + B.neutralPharynx * w;
+    // the shortest tract shrinks with the size and, for about half its length, with the pharynx; an
+    // estimate on the short side only lengthens the back duct, never shortens a grid section
+    const minLength = (A.minLength * (1 - w) + B.minLength * w) * this.size * Math.min(1, 0.55 + 0.45 * ps);
+    const neutralPharynx = (A.neutralPharynx * (1 - w) + B.neutralPharynx * w) * this.size * ps;
     const air = this.air;
     const n = Math.min(air.nMax, gridSections(this.sr, minLength));
     const lb = minLength - n * air.dx;
@@ -589,10 +630,26 @@ class VocalVoice implements Voice {
     tg[ART.jaw] += tj;
     tg[ART.tbY] -= tj;
     tg[ART.lipAp] += 0.5 * tj;
+    // the voice's settings, given back wherever a consonant holds the articulator (a closure still closes)
+    const so = this.setOff;
+    const held = p.held;
+    for (let i = 0; i < ARTICULATORS; i++) tg[i] += so[i] * (1 - held[i]);
     for (let i = 0; i < ARTICULATORS; i++) {
       const v = tg[i];
       tg[i] = v < ARTICULATOR_TARGET_MIN[i] ? ARTICULATOR_TARGET_MIN[i] : v > ARTICULATOR_MAX[i] ? ARTICULATOR_MAX[i] : v;
     }
+  }
+
+  /**
+   * The settings as articulator offsets. Each is a long-term posture laid over every sound, as Laver
+   * (1980, The Phonetic Description of Voice Quality) describes them: jaw open or close, tongue
+   * fronted or backed and raised or lowered, lips rounded and protruded or spread, larynx raised or
+   * lowered, nasal (the velum down), twang (the epilarynx narrowed, the larynx a little up), and an
+   * open or constricted throat (the tongue root forward or back): engines/vocal-settings.ts.
+   */
+  private settings(): void {
+    // the shared table (engines/vocal-settings.ts), so the engine and the mouth view agree
+    settingOffsets(this.setting, this.setOff);
   }
 
   private updateGlottis(): void {
@@ -843,6 +900,19 @@ const PARAMS: ParamSpec[] = [
   { name: 'preparation', min: 0, max: 1, default: DEFAULTS.preparation },
   { name: 'ring', min: 0, max: 1, default: 0 },
   { name: 'mic', min: 0, max: 1, default: 0 },
+  { name: 'cheeks', min: 0, max: 1, default: 0 },
+  { name: 'piriform', min: 0, max: 1, default: 0 },
+  { name: 'size', min: 0.8, max: 1.25, default: 1 },
+  { name: 'pharynx', min: 0.8, max: 1.25, default: 1 },
+  { name: 'jawSet', min: -1, max: 1, default: 0 },
+  { name: 'tongueFront', min: -1, max: 1, default: 0 },
+  { name: 'tongueHigh', min: -1, max: 1, default: 0 },
+  { name: 'lipRound', min: -1, max: 1, default: 0 },
+  { name: 'lipOpen', min: -1, max: 1, default: 0 },
+  { name: 'larynxSet', min: -1, max: 1, default: 0 },
+  { name: 'nasal', min: 0, max: 1, default: 0 },
+  { name: 'twang', min: 0, max: 1, default: 0 },
+  { name: 'throat', min: -1, max: 1, default: 0 },
   { name: 'tuning', min: 0, max: 1, default: 0 },
   { name: 'nextIn', min: 0, max: 1, default: 0, unit: 's' },
   { name: 'nextPhoneme', min: 0, max: PHONEMES - 1, default: 0 },

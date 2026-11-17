@@ -270,7 +270,7 @@ describe('vocal engine: definition', () => {
     expect(vocalEngine.polyphony).toBe(8);
     const byName = Object.fromEntries(vocalEngine.params.map((p) => [p.name, p]));
     expect(Object.keys(byName).sort()).toEqual(
-      ['phoneme', 'bend', 'glide', 'body', 'tension', 'roughness', 'fry', 'drift', 'glottis', 'breath', 'vibratoRate', 'vibratoDepth', 'vibratoDelay', 'articulation', 'attack', 'release', 'level', 'overshoot', 'preparation', 'ring', 'mic', 'tuning', 'nextPhoneme', 'nextIn'].sort(),
+      ['phoneme', 'bend', 'glide', 'body', 'tension', 'roughness', 'fry', 'drift', 'glottis', 'breath', 'vibratoRate', 'vibratoDepth', 'vibratoDelay', 'articulation', 'attack', 'release', 'level', 'overshoot', 'preparation', 'ring', 'mic', 'cheeks', 'piriform', 'size', 'pharynx', 'jawSet', 'tongueFront', 'tongueHigh', 'lipRound', 'lipOpen', 'larynxSet', 'nasal', 'twang', 'throat', 'tuning', 'nextPhoneme', 'nextIn'].sort(),
     );
     // the phonemes, then the beatbox sounds (engines/vocal-beats.ts)
     expect(byName.phoneme).toMatchObject({ min: 0, max: VOCAL_SOUND_COUNT - 1, default: 1 });

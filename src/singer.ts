@@ -14,6 +14,7 @@ import { lyricsToSyllables } from './lyrics/read';
 import { resolveAccent, type Accent } from './lyrics/accents';
 import { speechPlan } from './lyrics/speech';
 import { BEAT_LEAD_IN, beatLine, type BeatPattern, type BeatTiming } from './lyrics/beat';
+import { SHAPE_PRESETS, VOICE_SETTINGS } from './engines/vocal-settings';
 import { planSung, type PlanSungOptions } from './lyrics/sing';
 import { sungEvents, type SungWindow } from './sing';
 import { VOCAL_PLAN_LEAD, vocalGlideLead } from './engines/vocal-lead';
@@ -61,6 +62,8 @@ export interface SpeakOptions {
   rate?: number;
   /** The accent's t and l rules, default true. */
   allophones?: boolean;
+  /** Breaths in: 'between' phrases (default), 'all' (before the first too), or 'none'. */
+  breath?: 'between' | 'all' | 'none';
 }
 
 /**
@@ -216,7 +219,7 @@ export class Singer {
       syllables.push(...part);
       questions.push(m[0].includes('?'));
     }
-    const plan = speechPlan(syllables, { hz: opts.hz ?? this.speechHz, rate: opts.rate, prosody: accent.prosody }, questions);
+    const plan = speechPlan(syllables, { hz: opts.hz ?? this.speechHz, rate: opts.rate, prosody: accent.prosody, breath: opts.breath }, questions);
     const notes: SingNote[] = plan.notes.map((n) =>
       n.rest ? { note: null, dur: { seconds: n.dur } } : { note: { hz: n.hz }, dur: { seconds: n.dur } },
     );
@@ -239,6 +242,21 @@ export class Singer {
     });
     const at = opts.at === undefined ? undefined : opts.at - BEAT_LEAD_IN;
     return this.post(line.syllables, notes, { at });
+  }
+
+  /**
+   * Shape the mouth: voice settings and anatomy (VOICE_SETTINGS: jawSet, lipRound, larynxSet, nasal,
+   * twang, throat, cheeks, size, pharynx, ...) as values, or a SHAPE_PRESETS id ('smile', 'operatic',
+   * 'giant'). Settings left out go back to neutral. Size and pharynx take effect from the next line.
+   */
+  shape(values: Record<string, number> | string): this {
+    const v = typeof values === 'string' ? SHAPE_PRESETS.find((p) => p.id === values)?.values : values;
+    if (!v) throw new Error(`bellows-voice: no mouth shape '${String(values)}' (see SHAPE_PRESETS)`);
+    for (const s of VOICE_SETTINGS) {
+      const x = v[s.param];
+      this.param(s.param, typeof x === 'number' && Number.isFinite(x) ? x : (s.neutral ?? 0));
+    }
+    return this;
   }
 
   /** Play a note on the voice's own phoneme (an "ah" unless `phoneme` is set), as the instrument's note() does. */

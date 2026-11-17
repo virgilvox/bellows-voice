@@ -173,12 +173,24 @@ const B_CRASH = BEAT_ID('kch');
 const B_HUM = BEAT_ID('m');
 const B_CHAT = BEAT_ID('ch');
 const B_PSH = BEAT_ID('Psh');
+const B_IN = BEAT_ID('in');
 /** The velar fricative [x], which the tables lack: /k/'s place with the dorsum this far down, by body (CHIMERA's inventory). */
 const X_TBY = [7.365, 7.43, 7.499];
 /** The kick's tongue body, high and short of the palate (/k/ seals at 8.35). */
 const KICK_TBY = 7.7;
+/** A breath in's lung pressure, a fraction of the note's (about -5.7 cmH2O at the default velocity; INFERRED). */
+const BREATH_IN = 0.5;
+/**
+ * A breath in's glottal opening, cm^2 before k^2. MEASURED: wide open (0.9) the inflow, 330 cm^3/s, was
+ * 76 dB under the vowel (noise grows as v^3); at 0.18 and 0.5 of the note's pressure it reads about
+ * -33 dB, a quiet but audible breath (INFERRED target).
+ */
+const BREATH_IN_GLOTTIS = 0.18;
 /** How long after the release the ejective's larynx keeps rising, s. */
 const EJECTIVE_PUSH = 0.025;
+/** A voiced stop's cavity enlargement: the larynx lowered and the root advanced from schwa's (INFERRED). */
+const VOICED_EXPAND_LARYNX = 0.45;
+const VOICED_EXPAND_ROOT = 0.35;
 for (let i = 0; i < COUNT; i++) {
   const d = VOCAL_INVENTORY[i];
   MANNER[i] = MANNER_CODE[d.manner];
@@ -280,6 +292,11 @@ export class VocalPlanner {
   breath = 1;
   /** Whether the evaluated time is in a beat line (the breath rests at 0 and moves fast). */
   beat = 0;
+  /**
+   * How fully a consonant holds each articulator at the evaluated time, 0 to 1 (the largest ramp
+   * of any consonant gesture on it): a voice setting (vocal.ts) gives way where a consonant closes.
+   */
+  readonly held = new Float64Array(ARTICULATORS);
   /** The dorsum's height for [x] at this body. */
   private xTbY = X_TBY[0];
   /** Scratch: a consonant's targets with a beat's overrides. */
@@ -621,6 +638,16 @@ export class VocalPlanner {
           }
         }
         this.oral(idx, row, placed ? t0 + Math.min(0.025, Math.max(0, dur - 0.03)) : t0, t1, 1.55, RETURN_SPEED[idx]);
+        if (VOICED[idx] === 1) {
+          // a voiced stop's closure enlarges the cavity behind it, so air keeps flowing through the
+          // folds and the voicing lasts: the larynx lowers and the tongue root advances (Westbury
+          // 1983, JASA 73, 1322-1336; Ohala's aerodynamic voicing constraint). The amounts are
+          // INFERRED, gated on the voice bar (test/engines-physical/anatomy.test.ts)
+          this.begin();
+          this.key(ART.larynx, this.vowelT[P_SCHWA * ARTICULATORS + ART.larynx] - VOICED_EXPAND_LARYNX);
+          this.key(ART.root, this.vowelT[P_SCHWA * ARTICULATORS + ART.root] + VOICED_EXPAND_ROOT);
+          this.emit(t0 + 0.15 * dur, t1, 0.03, 0.04, 3, 0);
+        }
       } else if (m === M_NASAL) this.oral(idx, row, t0, t1, 1.55, RETURN_SPEED[idx]);
       else if (m === M_TAP) this.oral(idx, row, t0, t1, 2.8, RETURN_SPEED[idx]);
       else if (m === M_AFFRICATE) {
@@ -723,6 +750,8 @@ export class VocalPlanner {
     const speedR = this.speedR;
     wsum.fill(0);
     vsum.fill(0);
+    const held = this.held;
+    held.fill(0);
     const rankF = this.rankF;
     rankA.fill(NO_RANK);
     rankF.fill(NO_RANK);
@@ -787,6 +816,7 @@ export class VocalPlanner {
         const w = act * str;
         wsum[k] += w;
         vsum[k] += w * this.gVals[base + q];
+        if (rank >= 0 && k < ARTICULATORS && act > held[k]) held[k] = act;
       }
     }
     const target = this.target;
@@ -831,7 +861,7 @@ export class VocalPlanner {
   private beatScore(slot: number, h: number, len: number, first: boolean): void {
     const b = slot >> 1;
     const accent = (slot & 1) === 1 ? 1.3 : 1;
-    const hum = b === B_HUM;
+    const hum = b === B_HUM || b === B_IN;
     // the ready posture: jaw nearly closed, lips just apart, the dorsum a little high for the velar hits
     const sch = P_SCHWA * ARTICULATORS;
     this.begin();
@@ -925,6 +955,22 @@ export class VocalPlanner {
       this.begin();
       this.key(KEY_BREATH, 0.95 * accent);
       this.emit(h - 0.01, h + end, 0.02, 0.04, 1, 0);
+    } else if (b === B_IN) {
+      // a breath in between phrases (Werner et al. 2021: noise with no pitch, louder the faster the
+      // breath and the wider the jaw): the glottis wide, the jaw open, the velum part open (mouth and
+      // nose), and the lungs below the mouth's pressure. The amounts are INFERRED, gated on level.
+      const end = Math.max(0.12, len);
+      this.artic(ART.jaw, 0.95, h - 0.04, h + end - 0.05, 0.05, 0.06, 1.2);
+      this.begin();
+      this.key(ART.lipAp, 0.9);
+      this.key(ART.velum, 0.5);
+      this.emit(h - 0.04, h + end - 0.05, 0.05, 0.06, 4, 0);
+      this.begin();
+      this.key(KEY_ABDUCTION, BREATH_IN_GLOTTIS);
+      this.emit(h - 0.03, h + end, 0.03, 0.05, 8, 0);
+      this.begin();
+      this.key(KEY_BREATH, -BREATH_IN * accent);
+      this.emit(h, h + end - 0.04, 0.06, 0.05, 2, 0);
     }
     // B_REST: the ready posture only
   }

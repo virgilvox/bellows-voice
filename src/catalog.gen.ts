@@ -10,7 +10,7 @@ export const VOCAL_ENGINE_INFO: EngineInfo = {
     {
       "name": "phoneme",
       "min": 0,
-      "max": 79,
+      "max": 81,
       "default": 1
     },
     {
@@ -146,6 +146,84 @@ export const VOCAL_ENGINE_INFO: EngineInfo = {
       "default": 0
     },
     {
+      "name": "cheeks",
+      "min": 0,
+      "max": 1,
+      "default": 0
+    },
+    {
+      "name": "piriform",
+      "min": 0,
+      "max": 1,
+      "default": 0
+    },
+    {
+      "name": "size",
+      "min": 0.8,
+      "max": 1.25,
+      "default": 1
+    },
+    {
+      "name": "pharynx",
+      "min": 0.8,
+      "max": 1.25,
+      "default": 1
+    },
+    {
+      "name": "jawSet",
+      "min": -1,
+      "max": 1,
+      "default": 0
+    },
+    {
+      "name": "tongueFront",
+      "min": -1,
+      "max": 1,
+      "default": 0
+    },
+    {
+      "name": "tongueHigh",
+      "min": -1,
+      "max": 1,
+      "default": 0
+    },
+    {
+      "name": "lipRound",
+      "min": -1,
+      "max": 1,
+      "default": 0
+    },
+    {
+      "name": "lipOpen",
+      "min": -1,
+      "max": 1,
+      "default": 0
+    },
+    {
+      "name": "larynxSet",
+      "min": -1,
+      "max": 1,
+      "default": 0
+    },
+    {
+      "name": "nasal",
+      "min": 0,
+      "max": 1,
+      "default": 0
+    },
+    {
+      "name": "twang",
+      "min": 0,
+      "max": 1,
+      "default": 0
+    },
+    {
+      "name": "throat",
+      "min": -1,
+      "max": 1,
+      "default": 0
+    },
+    {
       "name": "tuning",
       "min": 0,
       "max": 1,
@@ -161,7 +239,7 @@ export const VOCAL_ENGINE_INFO: EngineInfo = {
     {
       "name": "nextPhoneme",
       "min": 0,
-      "max": 79,
+      "max": 81,
       "default": 0
     }
   ],

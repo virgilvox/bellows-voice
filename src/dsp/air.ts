@@ -33,6 +33,15 @@ export interface WallTissue {
  * vowels line most (docs/VOICE-2.md, "Integration 4").
  */
 export const WALL_TRACT: WallTissue = { m: 1.5, r: 2000, k: 1e5 };
+/**
+ * Relaxed cheeks: Ishizaka, French and Flanagan (1975, "Direct determination of vocal tract wall
+ * impedance", IEEE TASSP 23) measured the cheek and neck walls by vibrating them, broad resonances
+ * of 30 to 70 Hz; the per-area values reproduced from them in later models are m 1.5 g/cm^2,
+ * r 800 dyn s/cm^3 and k 66 667 dyn/cm^3 (a 33.5 Hz resonance). The airway's oral walls blend from
+ * WALL_TRACT toward these with the `cheeks` setting: slack cheeks let a closed mouth expand, which
+ * keeps the folds voicing through a /b d g/ longer.
+ */
+export const WALL_CHEEK_RELAXED: WallTissue = { m: 1.5, r: 800, k: 66667 };
 /** The trachea's cartilage-ringed wall (physics.rs WALL_TRACHEA). */
 export const WALL_TRACHEA: WallTissue = { m: 0.6, r: 1000, k: 1e6 };
 /** The nasal cavity's mucosa over bone (physics.rs WALL_NASAL). */

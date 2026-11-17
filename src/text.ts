@@ -78,5 +78,9 @@ export type {
 export { parseBeat, formatBeat, beatLine, beatStepSeconds, BEAT_PRESETS, BEAT_LEAD_IN, MAX_BEAT_STEPS, type BeatStep, type BeatPattern, type BeatPreset, type BeatTiming, type BeatLine } from './lyrics/beat';
 export { VOCAL_BEATS, vocalBeatIndex, type VocalBeat, type BeatRole, type Airstream } from './engines/vocal-beats';
 
+/* the mouth's settings and shapes, and the voice explained in plain words */
+export { VOICE_SETTINGS, SHAPE_PRESETS, voiceSetting, type VoiceSetting, type ShapePreset, type SettingValues } from './engines/vocal-settings';
+export { describeSound, nearestVowel, describeShape } from './explain';
+
 /* starter voices are data too: what a UI lists, with no audio */
 export { VOICE_PRESETS, SPEECH_HZ_BY_BODY, voicePreset, speechHzForBody, type VoicePreset, type VoiceGroup } from './voices';

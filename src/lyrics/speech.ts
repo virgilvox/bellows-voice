@@ -26,6 +26,14 @@ const STRESS_RATIO = 2;
 const FINAL_LENGTHENING = 1.5;
 /** The pause after a phrase, s. */
 const PHRASE_PAUSE = 0.28;
+/**
+ * A breath in between phrases, s, and the silence after it. Speech breathing is a short quick
+ * inhalation and a long slow exhalation; an in-breath in a pause is noise with no pitch, set between
+ * short silences (Trouvain et al. 2020; Werner et al. 2021, who also find in-breaths inside speech
+ * louder than those that start it). The lengths are INFERRED for read speech at rate 1.
+ */
+const INHALE = 0.32;
+const AFTER_INHALE = 0.05;
 
 export interface SpeechOptions {
   /** The speaker's baseline pitch, Hz. Default 110. */
@@ -36,6 +44,11 @@ export interface SpeechOptions {
   prosody?: Prosody;
   /** End the last phrase rising, as a yes-no question does. Default: the text ends with "?". */
   question?: boolean;
+  /**
+   * Breaths in: 'between' phrases (the default), 'all' (before the first phrase too, softer), or
+   * 'none'. A breath is a sound (the voice's 'in' beat): the glottis wide and the air drawn in.
+   */
+  breath?: 'between' | 'all' | 'none';
 }
 
 /** A spoken note: a syllable's, or a rest (`hz` 0) for the pause after a phrase. Times from 0, s. */
@@ -69,12 +82,21 @@ export function speechPlan(
   const stressedVowel = ratio === STRESS_RATIO ? STRESSED_VOWEL : (VOWEL_PAIR * ratio) / (1 + ratio);
   const out: SpokenNote[] = [];
   const sylOut: Syllable[] = [];
+  const breath = opts.breath ?? 'between';
+  // a breath's length shortens a little as speech speeds up, less than the speech does
+  const inhale = INHALE / Math.sqrt(rate);
   let t = 0;
   let phrase = 0;
   for (let start = 0; start < syllables.length; ) {
     let end = start;
     while (end < syllables.length - 1 && !syllables[end].phraseEnd) end++;
     const span = syllables.slice(start, end + 1);
+    if (breath === 'all' || (breath === 'between' && phrase > 0)) {
+      // the breath in opens the phrase, before its first consonants: louder (accented) inside speech
+      const first = span[0];
+      const token = phrase > 0 ? 'beat:in>' : 'beat:in';
+      span[0] = { ...first, onset: [{ ipa: token, dur: inhale }, { ipa: '_', dur: AFTER_INHALE }, ...first.onset] };
+    }
     const rising = questions[phrase] ?? pro.tune === 'rise';
     const { pitches, endTone } = phrasePitches(span, pro, rising);
     for (let k = 0; k < span.length; k++) {
@@ -109,6 +131,8 @@ export function speechPlan(
       // the pause, and room for the next phrase's opening consonants
       let lead = 0;
       for (const c of syllables[end + 1].onset) lead += c.dur ?? consonantDuration(c.ipa);
+      // and the breath in that opens it
+      if (breath !== 'none') lead += inhale + AFTER_INHALE;
       const dur = PHRASE_PAUSE / rate + lead;
       out.push({ time: t, dur, hz: 0, rest: true });
       t += dur;

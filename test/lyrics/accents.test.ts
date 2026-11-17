@@ -257,7 +257,7 @@ describe('speech', () => {
     expect(spoken('start')).toBe('stɑɹt');
     expect(spoken('board')).toBe('bɔɹd');
     expect(spoken('roar')).toBe('ɹɔɹ');
-    expect(spoken('start the car, now go home')).toBe('stɑɹtðəkɑɹ|naʊgouhoum');
+    expect(spoken('start the car, now go home')).toBe('stɑɹtðəkɑɹ|beat:in>_naʊgouhoum');
     expect(spoken('is it hot', [true])).toBe('ɪzɪthɑt');
   });
 

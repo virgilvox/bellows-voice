@@ -98,7 +98,7 @@
  */
 
 import type { NamedRng } from 'bellowsjs';
-import { AIR_DENSITY, AIR_DYNAMIC_VISCOSITY, CM_H2O, SOUND_SPEED, WALL_NASAL, WALL_TRACHEA, WALL_TRACT } from './air';
+import { AIR_DENSITY, AIR_DYNAMIC_VISCOSITY, CM_H2O, SOUND_SPEED, WALL_CHEEK_RELAXED, WALL_NASAL, WALL_TRACHEA, WALL_TRACT } from './air';
 import { AirwayTube, TUBE_RING, evenNodes } from './airway-tube';
 import { AreaSlew } from './area-rate';
 import { GlottalSource } from './glottal';
@@ -250,6 +250,48 @@ const OUTPUT_HP = 25;
 const MIC_R = 2;
 /** The microphone's low cut on its flow term, Hz: a slow tongue or jaw pushing air out is not a thump. */
 const MIC_LOW_CUT = 70;
+/*
+ * Side branches (docs/HOW-IT-WORKS.md, section 11). A closed tube of depth L and area A, near its
+ * first quarter-wave resonance, has the input impedance of a series mass and spring,
+ * Z ~ j Z0 (w - w0) L / c, so M = rho L / (2 A) and K = w0^2 M. A Helmholtz resonator is a mass
+ * rho L / A on a spring rho c^2 / V. Both are discretized by the trapezoidal rule (the bilinear
+ * transform), which maps a passive element to a passive one at any rate: the walls' explicit spring
+ * made the 4 kHz branch unstable at 22.05 kHz (MEASURED). Its resonance is pre-warped,
+ * w_set = (2 / T) tan(w0 T / 2). With D = M / T + R / 2 + K T / 4 the branch's flow is
+ * q_n = p_n / (2 D) + (p_{n-1} / 2 + (M / T - R / 2 - K T / 4) q_{n-1} - K y_{n-1}) / D, its charge
+ * y_n = y_{n-1} + T (q_n + q_{n-1}) / 2: a conductance 1 / (2 D) folded into the junction and a history flow.
+ *
+ * The piriform fossae (Dang and Honda 1997, JASA 101, 456-465): MRI volumes 2.1 to 2.9 cm^3 and
+ * depths 1.6 to 2.0 cm, a spectral minimum at 4 to 5 kHz. Here the pair is one branch of 2.5 k^3
+ * cm^3 and 1.8 k cm, end-corrected by 0.61 of each fossa's radius: 4.2 kHz in the male body.
+ * They open beside the epilarynx, a few cm above the glottis: the first even grid junction above
+ * the back duct.
+ */
+const PIRIFORM_VOLUME = 2.5;
+const PIRIFORM_DEPTH = 1.8;
+/** The fossae's Q, INFERRED (soft mucosal walls; the measured minima are a few hundred Hz wide). */
+const PIRIFORM_Q = 10;
+/*
+ * The maxillary sinuses (Dang and Honda 1996, JASA 100, 3374-3383: four Helmholtz resonators model
+ * the sinuses; the maxillary zero was found between 310 and 950 Hz). The pair as one resonator of
+ * 30 k^3 cm^3 behind an ostium of 0.2 k^2 cm^2 and 1 k cm effective length: 455 Hz in the male
+ * body, on the middle node of the nasal tube (the ostia open into the middle meatus).
+ */
+const SINUS_VOLUME = 30;
+const SINUS_NECK_AREA = 0.2;
+const SINUS_NECK_LENGTH = 1;
+/** The sinus's Q, INFERRED. */
+const SINUS_Q = 8;
+
+/** A series mass-spring branch of mass M tuned to f0 at Q, trapezoidal at `rate`: [1 / D, M / T - R / 2 - K T / 4, K]. */
+export function branchCoefficients(M: number, f0: number, q: number, rate: number): [number, number, number] {
+  const w0 = 2 * Math.PI * f0;
+  const wSet = 2 * rate * Math.tan(w0 / (2 * rate));
+  const K = wSet * wSet * M;
+  const R = (w0 * M) / q;
+  const D = M * rate + 0.5 * R + K / (4 * rate);
+  return [1 / D, M * rate - 0.5 * R - K / (4 * rate), K];
+}
 const OUTPUT_LP = 18000;
 /** The moving-wall flow is smoothed by CHIMERA's 60 Hz two-pole (network.rs:360). */
 const DVDT_HZ = 60;
@@ -309,6 +351,33 @@ export class JunctionAirway {
   pLung = 0;
   /** How close a directional microphone is, 0 (the far field) to 1 (a cardioid MIC_R from the lips). */
   mic = 0;
+  /** How slack the cheeks are, 0 (the tract's walls) to 1 (Ishizaka's relaxed cheek). */
+  cheeks = 0;
+  /** The side branches on or off (a test's counterfactual). */
+  branches = true;
+  /**
+   * The piriform fossae, 0 off or 1 on. Off by default: they lower F1 (MEASURED: General American's
+   * vowels from 4.6 to 7.4 percent RMS off Hillenbrand's F1) and the vowel targets were solved without
+   * them; re-solving with the branch in the solver's tube is the plan (HOW-IT-WORKS.md, section 11).
+   */
+  piriform = 0;
+  /** The piriform junction in force this block (-1 off). */
+  private pJa = -1;
+  /* Per-junction wall coefficients (the throat's, the cheeks' past the split). */
+  private readonly wCmA: Float64Array;
+  private readonly wKsA: Float64Array;
+  private readonly wIbsA: Float64Array;
+  private wallCheeks = -1;
+  private wallSplit = -1;
+  /* The piriform branch: its junction, coefficients and state. */
+  private pJ = -1;
+  private pG = 0;
+  private pCm = 0;
+  private pK = 0;
+  private pDi = 0;
+  private pQ = 0;
+  private pY = 0;
+  private pP = 0;
   /* The microphone flow term's low cut: its state and pole. */
   private micX = 0;
   private micY = 0;
@@ -584,6 +653,9 @@ export class JunctionAirway {
     this.pn = new Float64Array(nj);
     this.wS = new Float64Array(nj);
     this.gw = new Float64Array(nj);
+    this.wCmA = new Float64Array(nj);
+    this.wKsA = new Float64Array(nj);
+    this.wIbsA = new Float64Array(nj);
     this.wV = new Float64Array(nj);
     this.wY = new Float64Array(nj);
     this.jmList = new Int32Array(nj);
@@ -667,12 +739,53 @@ export class JunctionAirway {
     let c = 1;
     for (let i = 1; i < nn; i++) if (nodes[i] > nodes[c - 1]) nodes[c++] = nodes[i];
     this.na.configure(sec, nNa, nodes, c, WALL_NASAL, 3.2, 2.5, dx, this.rate);
+    if (this.branches) {
+      // the maxillary sinuses on the middle nasal node
+      const sv = SINUS_VOLUME * k2 * k;
+      const sm = (RHO * SINUS_NECK_LENGTH * k) / (SINUS_NECK_AREA * k2);
+      const f0 = Math.sqrt((RHOC * SOUND_SPEED) / sv / sm) / (2 * Math.PI);
+      const bc = branchCoefficients(sm, f0, SINUS_Q, this.rate);
+      this.na.addResonator(c >> 1, bc[0], bc[1], bc[2]);
+      // the piriform fossae at the first even junction above the back duct
+      const pd = PIRIFORM_DEPTH * k;
+      const pa = (PIRIFORM_VOLUME * k2 * k) / pd;
+      const leff = pd + 0.61 * Math.sqrt(pa / 2 / Math.PI);
+      const pm = (RHO * leff) / (2 * pa);
+      const pc = branchCoefficients(pm, SOUND_SPEED / (4 * leff), PIRIFORM_Q, this.rate);
+      this.pJ = 2 < this.nG - 1 && jv !== 2 ? 2 : -1;
+      this.pDi = pc[0];
+      this.pG = 0.5 * pc[0];
+      this.pCm = pc[1];
+      this.pK = pc[2];
+    } else this.pJ = -1;
+    this.wallCheeks = -1;
     for (let i = 0; i < this.nMax; i++) {
       this.perimF[i] = i < jv ? 1.25 : 1.5;
       this.wallK[i] = 2 * this.perimF[i] * 2 * Math.sqrt(Math.PI) * dx;
       this.viscC[i] = (0.25 * VISC * this.perimF[i] * 2 * Math.sqrt(Math.PI) * dx) / Math.pow(RHOC, 1.5);
     }
     this.reset();
+    this.updateWalls();
+  }
+
+  /** Each junction's wall coefficients: the tract's, blended toward relaxed cheeks past the split. */
+  private updateWalls(): void {
+    const ch = this.cheeks < 0 ? 0 : this.cheeks > 1 ? 1 : this.cheeks;
+    const split = Math.ceil(this.splitI);
+    if (ch === this.wallCheeks && split === this.wallSplit) return;
+    this.wallCheeks = ch;
+    this.wallSplit = split;
+    const rate = this.rate;
+    const n = this.wCmA.length;
+    for (let i = 0; i < n; i++) {
+      const c = i >= split ? ch : 0;
+      const m = WALL_TRACT.m + (WALL_CHEEK_RELAXED.m - WALL_TRACT.m) * c;
+      const r = WALL_TRACT.r + (WALL_CHEEK_RELAXED.r - WALL_TRACT.r) * c;
+      const kk = WALL_TRACT.k + (WALL_CHEEK_RELAXED.k - WALL_TRACT.k) * c;
+      this.wCmA[i] = m * rate - 0.5 * r;
+      this.wKsA[i] = kk;
+      this.wIbsA[i] = 1 / (m * rate + 0.5 * r);
+    }
   }
 
   /** Back to rest: every wave, flow, wall and filter; the turbulence reseeded from its stream. */
@@ -712,6 +825,7 @@ export class JunctionAirway {
     this.pSub = this.pSubSmooth = 0;
     this.uLips = this.uNose = 0;
     this.micX = this.micY = 0;
+    this.pQ = this.pY = this.pP = 0;
     this.aVib = this.aVib0 = 0;
     this.agAcc = 0;
     this.agMean = 0.05;
@@ -746,6 +860,8 @@ export class JunctionAirway {
 
   /** The next block's inputs are in the fields: limit and ramp the shape, place the sources, run the glottal pulse. */
   beginBlock(): void {
+    this.updateWalls();
+    this.pJa = this.piriform > 0 ? this.pJ : -1;
     const first = this.blocks === 0;
     this.blocks++;
     const blk = this.block;
@@ -838,7 +954,7 @@ export class JunctionAirway {
       const am = 0.5 * (al + ar);
       const sw = (i & 1) === 0 && am > CLOSED ? this.wallK[sl] * Math.sqrt(am - CLOSED) : 0;
       this.wS[i] = sw;
-      const gw = sw * this.wIbs;
+      const gw = sw * this.wIbsA[i] + (i === this.pJa ? this.pG : 0);
       this.gw[i] = gw;
       if (!mv) {
         const gam = 1 / (1 + zl * gw);
@@ -1331,9 +1447,17 @@ export class JunctionAirway {
     const aMin = this.aMin;
     const dAMin = this.dAMin;
     const iaMin = this.iaMin;
-    const wCm = this.wCm;
-    const wKs = this.wKs;
-    const wIbs = this.wIbs;
+    const wIbsA = this.wIbsA;
+    const wCmA = this.wCmA;
+    const wKsA = this.wKsA;
+    const pJ = this.pJa;
+    const pG = this.pG;
+    const pCm = this.pCm;
+    const pK = this.pK;
+    const pDi = this.pDi;
+    let pQ = this.pQ;
+    let pY = this.pY;
+    let pP = this.pP;
     const fBuf = this.fBuf;
     const bBuf = this.bBuf;
     const tr = this.tr;
@@ -1405,7 +1529,7 @@ export class JunctionAirway {
           // the surface goes to zero continuously as the section seals, so the wall leaves smoothly
           const sw = am > CLOSED ? wallK[i - 1] * Math.sqrt(am - CLOSED) : 0;
           wS[i] = sw;
-          gwA[i] = sw * wIbs;
+          gwA[i] = sw * wIbsA[i] + (i === pJ ? pG : 0);
         }
         const t = zl * gwA[i];
         const gam = t < 1e-3 ? 1 - t : 1 / (1 + t);
@@ -1603,13 +1727,16 @@ export class JunctionAirway {
         const a = R[sl] * sZ[sl];
         const b = L[i] * sZ[i];
         const ws = wS[i];
-        const hist = wCm * wV[i] - wKs * wY[i];
+        const hist = wCmA[i] * wV[i] - wKsA[i] * wY[i];
+        const wib = wIbsA[i];
+        // the piriform fossae's branch, at its one junction
+        const ph = i === pJ ? (0.5 * pP + pCm * pQ - pK * pY) * pDi : 0;
         // CHIMERA's 60 Hz two-pole on the moving-wall flow, per sample (network.rs:360)
         const d1 = dv1[i] + dvc * (raw[i] - dv1[i]);
         dv1[i] = d1;
         const d2 = dv2[i] + dvc * (d1 - dv2[i]);
         dv2[i] = d2;
-        const ue0 = d2 - ws * hist * wIbs;
+        const ue0 = d2 - ws * hist * wib - ph;
         const gam = gamA[i];
         const cc = 2 * a * gam - 2 * b + zl * gam * ue0 + pn[i];
         const ib = ibA[i];
@@ -1625,8 +1752,14 @@ export class JunctionAirway {
         U[i] = u;
         const p = (2 * a - zl * (u - ue0)) * gam;
         // a wall with no surface (its junction closed) is disconnected: it must not integrate a sealed node
+        if (i === pJ) {
+          const qn = pG * p + ph;
+          pY += 0.5 * T * (qn + pQ);
+          pQ = qn;
+          pP = p;
+        }
         if (ws > 0) {
-          const v = (hist + p) * wIbs;
+          const v = (hist + p) * wib;
           wV[i] = v;
           wY[i] += T * v;
           wallRad += ws * v * WALL_RADIATION;
@@ -1689,6 +1822,9 @@ export class JunctionAirway {
       outL[at + c] += v;
       outR[at + c] += v;
     }
+    this.pQ = pQ;
+    this.pY = pY;
+    this.pP = pP;
     if (off + count >= blk) this.agMean = this.agAcc / blk;
   }
 
@@ -1765,7 +1901,7 @@ export class JunctionAirway {
     const d2 = this.dv2[j] + this.dvCoef * (d1 - this.dv2[j]);
     this.dv2[j] = d2;
     let ue = d2;
-    if (gw > 0) ue -= this.wS[j] * (this.wCm * this.wV[j] - this.wKs * this.wY[j]) * this.wIbs;
+    if (gw > 0) ue -= this.wS[j] * (this.wCmA[j] * this.wV[j] - this.wKsA[j] * this.wY[j]) * this.wIbsA[j];
     const zl = 1 / (1 / z1 + gw);
     const p0 = (2 * a) / z1 + ue;
     const src = this.pn[j];
@@ -1811,7 +1947,7 @@ export class JunctionAirway {
     this.uV = uv;
     const p = zl * (p0 - ur - uv);
     if (gw > 0) {
-      const v = (this.wCm * this.wV[j] + p - this.wKs * this.wY[j]) * this.wIbs;
+      const v = (this.wCmA[j] * this.wV[j] + p - this.wKsA[j] * this.wY[j]) * this.wIbsA[j];
       this.wV[j] = v;
       this.wY[j] += this.T * v;
       this.wallRadAcc += this.wS[j] * v * WALL_RADIATION;

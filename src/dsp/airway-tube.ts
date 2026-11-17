@@ -55,6 +55,17 @@ export class AirwayTube {
   private wK = 0;
   private wIb = 0;
   private T = 0;
+  /*
+   * Side resonators on interior nodes (a paranasal sinus): a lumped acoustic mass M, resistance R and
+   * stiffness K = 1 / C in series, the same equation as a wall with lumped values. Per node: its
+   * conductance (0 for none), history coefficient and stiffness, and its flow and displacement.
+   */
+  private readonly sG: Float64Array;
+  private readonly sCm: Float64Array;
+  private readonly sK: Float64Array;
+  private readonly sQ: Float64Array;
+  private readonly sY: Float64Array;
+  private readonly sP: Float64Array;
 
   /** maxNodes: the most nodes any configure() will ask for. */
   constructor(maxNodes: number) {
@@ -71,6 +82,33 @@ export class AirwayTube {
     this.wV = new Float64Array(maxNodes);
     this.wY = new Float64Array(maxNodes);
     this.U = new Float64Array(maxNodes);
+    this.sG = new Float64Array(maxNodes);
+    this.sCm = new Float64Array(maxNodes);
+    this.sK = new Float64Array(maxNodes);
+    this.sQ = new Float64Array(maxNodes);
+    this.sY = new Float64Array(maxNodes);
+    this.sP = new Float64Array(maxNodes);
+  }
+
+  /**
+   * Hang a resonator on interior node m, discretized by the trapezoidal rule (junction-airway.ts,
+   * branchCoefficients): 1 / D, the history coefficient M / T - R / 2 - K T / 4, and the stiffness K.
+   * Call after configure(); configure() removes every resonator. Off the audio path.
+   */
+  addResonator(m: number, invD: number, cm: number, K: number): void {
+    if (!(m >= 1 && m < this.nn - 1) || !(invD > 0)) return;
+    this.sG[m] = 0.5 * invD;
+    this.sCm[m] = cm * invD;
+    this.sK[m] = K * invD;
+    this.refresh(m);
+  }
+
+  /** A node's coefficients from its wall and resonator. */
+  private refresh(m: number): void {
+    const z1 = this.Z[m - 1];
+    const g = 1 / (1 + z1 * (this.wS[m] * this.wIb + this.sG[m]));
+    this.gam[m] = g;
+    this.ibq[m] = 1 / (z1 * g + this.Z[m] + this.rv[m]);
   }
 
   /**
@@ -116,12 +154,10 @@ export class AirwayTube {
       this.rv[best] += 0.25 * VISC * hr * (Math.pow(al, -1.5) + Math.pow(ar, -1.5));
       this.wS[best] += perim * 2 * Math.sqrt(Math.PI * 0.5 * (al + ar)) * dx;
     }
-    for (let m = 1; m < nn - 1; m++) {
-      const z1 = this.Z[m - 1];
-      const g = 1 / (1 + (z1 * this.wS[m]) / beta);
-      this.gam[m] = g;
-      this.ibq[m] = 1 / (z1 * g + this.Z[m] + this.rv[m]);
-    }
+    this.sG.fill(0);
+    this.sCm.fill(0);
+    this.sK.fill(0);
+    for (let m = 1; m < nn - 1; m++) this.refresh(m);
     this.reset();
   }
 
@@ -132,6 +168,9 @@ export class AirwayTube {
     this.wV.fill(0);
     this.wY.fill(0);
     this.U.fill(0);
+    this.sQ.fill(0);
+    this.sY.fill(0);
+    this.sP.fill(0);
   }
 
   /**
@@ -157,13 +196,22 @@ export class AirwayTube {
       const wv = this.wV[m];
       const wy = this.wY[m];
       const hist = wCm * wv - wK * wy;
-      const ue0 = -this.wS[m] * hist * wIb;
+      const sg = this.sG[m];
+      // the history flow: (p_prev / 2 + cm q_prev - K y_prev) / D, the coefficients held already over D
+      const sh = sg > 0 ? sg * this.sP[m] + this.sCm[m] * this.sQ[m] - this.sK[m] * this.sY[m] : 0;
+      const ue0 = -this.wS[m] * hist * wIb - sh;
       const gam = this.gam[m];
       const u = (2 * a * gam - 2 * b + z1 * gam * ue0) * this.ibq[m];
       const p = (2 * a - z1 * (u - ue0)) * gam;
       const v = (hist + p) * wIb;
       this.wV[m] = v;
       this.wY[m] = wy + T * v;
+      if (sg > 0) {
+        const q = sg * p + sh;
+        this.sY[m] += 0.5 * T * (q + this.sQ[m]);
+        this.sQ[m] = q;
+        this.sP[m] = p;
+      }
       B[segL + pos] = p - a;
       F[segR + pos] = b + Z[m] * u;
       this.U[m] = u;
