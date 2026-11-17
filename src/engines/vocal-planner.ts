@@ -64,6 +64,7 @@ import { CASCADE_ORDER, CASCADE_SETTLE_98, cascadeSettle } from '../dsp/cascade'
 import { CRITDAMP_SETTLE_98 } from '../dsp/critdamp';
 import { ARTICULATORS, ART } from './vocal-articulators';
 import { VOCAL_ACOUSTICS, vocalPhonemeIndex } from './vocal-phonemes';
+import { VOCAL_BEATS, VOCAL_BEAT_BASE, VOCAL_SOUND_COUNT } from './vocal-beats';
 import {
   VOCAL_ARTICULATOR_HZ,
   VOCAL_ARTICULATOR_MAX,
@@ -78,7 +79,9 @@ import {
 export const KEY_ABDUCTION = ARTICULATORS;
 export const KEY_CLOSURE = ARTICULATORS + 1;
 export const KEY_STIFFNESS = ARTICULATORS + 2;
-const KEYS = ARTICULATORS + 3;
+/** The breath: a factor on the note's lung pressure, negative to draw air in (beats only; speech holds 1). */
+export const KEY_BREATH = ARTICULATORS + 3;
+const KEYS = ARTICULATORS + 4;
 
 /**
  * The stiffness gesture of a voiceless obstruent ramps out over this many
@@ -103,6 +106,8 @@ const M_APPROXIMANT = 6;
 const M_LATERAL = 7;
 const M_TAP = 8;
 const M_GLOTTAL = 9;
+/** A beatbox sound (engines/vocal-beats.ts): its gestures come from beat(), not from the tables. */
+const M_BEAT = 10;
 const MANNER_CODE: Record<string, number> = {
   silence: M_SILENCE,
   vowel: M_VOWEL,
@@ -128,18 +133,52 @@ const PLACE_RANK: Record<string, number> = {
 };
 
 const COUNT = VOCAL_TABLE_SIZE;
-const MANNER = new Uint8Array(COUNT);
-const VOICED = new Uint8Array(COUNT);
-const RANK = new Int8Array(COUNT);
-const ALVEOLAR = new Uint8Array(COUNT);
-const NASAL = new Uint8Array(COUNT);
+if (COUNT !== VOCAL_BEAT_BASE) throw new Error('vocal planner: the beats must follow the table phonemes');
+/* Per sound: the table phonemes, then the beats (each plain and accented). */
+const SOUNDS = VOCAL_SOUND_COUNT;
+const MANNER = new Uint8Array(SOUNDS);
+const VOICED = new Uint8Array(SOUNDS);
+const RANK = new Int8Array(SOUNDS).fill(-1);
+const ALVEOLAR = new Uint8Array(SOUNDS);
+const NASAL = new Uint8Array(SOUNDS);
 /** 0 none, 1 open (h), 2 stop (ʔ), 3 breathy. */
-const GLOTTAL = new Uint8Array(COUNT);
-const RELEASE = new Int16Array(COUNT);
+const GLOTTAL = new Uint8Array(SOUNDS);
+const RELEASE = new Int16Array(SOUNDS).fill(-1);
 /** Bit a set if the phoneme dominates articulator a. */
-const DOMINANT = new Int32Array(COUNT);
-const BODY_ONLY = new Uint8Array(COUNT);
-const LIPS_ONLY = new Uint8Array(COUNT);
+const DOMINANT = new Int32Array(SOUNDS);
+const BODY_ONLY = new Uint8Array(SOUNDS);
+const LIPS_ONLY = new Uint8Array(SOUNDS);
+for (let i = COUNT; i < SOUNDS; i++) MANNER[i] = M_BEAT;
+/* The table phonemes the beats are built from. */
+const P_P = VOCAL_TABLE_PHONEMES.indexOf('p');
+const P_T = VOCAL_TABLE_PHONEMES.indexOf('t');
+const P_K = VOCAL_TABLE_PHONEMES.indexOf('k');
+const P_S = VOCAL_TABLE_PHONEMES.indexOf('s');
+const P_F = VOCAL_TABLE_PHONEMES.indexOf('f');
+const P_SH = VOCAL_TABLE_PHONEMES.indexOf('ʃ');
+const P_M = VOCAL_TABLE_PHONEMES.indexOf('m');
+const P_SCHWA = VOCAL_TABLE_PHONEMES.indexOf('ə');
+/* Beat numbers (VOCAL_BEATS order). */
+const BEAT_ID = (id: string): number => VOCAL_BEATS.findIndex((b) => b.id === id);
+const B_REST = BEAT_ID('.');
+const B_KICK = BEAT_ID('B');
+const B_HAT = BEAT_ID('t');
+const B_OPEN_HAT = BEAT_ID('tss');
+const B_SNARE = BEAT_ID('Pf');
+const B_RIM = BEAT_ID('K');
+const B_INWARD = BEAT_ID('^K');
+const B_CLICK = BEAT_ID('!');
+const B_POP = BEAT_ID('P!');
+const B_CRASH = BEAT_ID('kch');
+const B_HUM = BEAT_ID('m');
+const B_CHAT = BEAT_ID('ch');
+const B_PSH = BEAT_ID('Psh');
+/** The velar fricative [x], which the tables lack: /k/'s place with the dorsum this far down, by body (CHIMERA's inventory). */
+const X_TBY = [7.365, 7.43, 7.499];
+/** The kick's tongue body, high and short of the palate (/k/ seals at 8.35). */
+const KICK_TBY = 7.7;
+/** How long after the release the ejective's larynx keeps rising, s. */
+const EJECTIVE_PUSH = 0.025;
 for (let i = 0; i < COUNT; i++) {
   const d = VOCAL_INVENTORY[i];
   MANNER[i] = MANNER_CODE[d.manner];
@@ -237,6 +276,14 @@ export class VocalPlanner {
   abduction = 0;
   closure = 0;
   stiffness = 0;
+  /** The breath, a factor on the note's lung pressure: 1 in speech and song, 0 between beats, negative drawn in. */
+  breath = 1;
+  /** Whether the evaluated time is in a beat line (the breath rests at 0 and moves fast). */
+  beat = 0;
+  /** The dorsum's height for [x] at this body. */
+  private xTbY = X_TBY[0];
+  /** Scratch: a consonant's targets with a beat's overrides. */
+  private readonly beatT = new Float64Array(ARTICULATORS);
   /** Inputs of evaluateNow() and queryNow(): the time and the rest tip. */
   at = 0;
   restX = 0;
@@ -264,6 +311,7 @@ export class VocalPlanner {
     const w = b - lo;
     const A = VOCAL_BODIES[lo];
     const B = VOCAL_BODIES[lo + 1];
+    this.xTbY = X_TBY[lo] * (1 - w) + X_TBY[lo + 1] * w;
     for (let p = 0; p < COUNT; p++) {
       for (let a = 0; a < ARTICULATORS; a++) {
         this.vowelT[p * ARTICULATORS + a] = A.vowelTargets[p][a] * (1 - w) + B.vowelTargets[p][a] * w;
@@ -292,7 +340,8 @@ export class VocalPlanner {
       if (this.segIdx[s] === idx && Math.abs(this.segT0[s] - t) <= SAME) return;
     }
     const n = this.segCount;
-    if (n > 0 && this.segIdx[n - 1] === idx && this.segT0[n - 1] < t - SAME) return;
+    // a beat strikes again; a phoneme repeated is the same sound held
+    if (n > 0 && this.segIdx[n - 1] === idx && this.segT0[n - 1] < t - SAME && MANNER[idx] !== M_BEAT) return;
     while (this.segCount > 0 && this.segT0[this.segCount - 1] >= t - SAME) this.segCount--;
     this.push(idx, t);
     this.rebuild();
@@ -373,6 +422,13 @@ export class VocalPlanner {
       if (MANNER[this.segIdx[s]] === M_VOWEL && this.t1(s) > t) return this.segIdx[s];
     }
     return -1;
+  }
+
+  /** Whether the segment at t (or the first, before it) is a beat. */
+  beatAt(t: number): boolean {
+    const s = this.segmentAt(t);
+    const i = s >= 0 ? s : this.segCount > 0 ? 0 : -1;
+    return i >= 0 && MANNER[this.segIdx[i]] === M_BEAT;
   }
 
   /** Whether the segment at t is silence (the breath stops). */
@@ -539,6 +595,11 @@ export class VocalPlanner {
       const idx = this.segIdx[s];
       const m = MANNER[idx];
       if (m === M_VOWEL || m === M_SILENCE) continue;
+      if (m === M_BEAT) {
+        const t1b = this.t1(s);
+        this.beatScore(idx - COUNT, this.segT0[s], t1b < Infinity ? t1b - this.segT0[s] : 0.25, s === 0);
+        continue;
+      }
       const before = this.gCount;
       const t0 = this.segT0[s];
       const t1 = this.t1(s);
@@ -744,6 +805,237 @@ export class VocalPlanner {
     this.closure = wc > 0 ? (vsum[KEY_CLOSURE] / wc) * Math.min(1, wc / 2) : 0;
     const ws = wsum[KEY_STIFFNESS];
     this.stiffness = ws > 0 ? (vsum[KEY_STIFFNESS] / ws) * Math.min(1, ws) : 0;
+    // the breath: a beat line rests it at 0 (the beatboxer breathes only into a sound), speech at 1
+    let cur = -1;
+    for (let s = 0; s < this.segCount; s++) {
+      if (this.segT0[s] <= t) cur = s;
+      else break;
+    }
+    if (cur < 0 && this.segCount > 0) cur = 0;
+    const inBeat = cur >= 0 && MANNER[this.segIdx[cur]] === M_BEAT;
+    this.beat = inBeat ? 1 : 0;
+    const rest = inBeat ? 0 : 1;
+    const wb = wsum[KEY_BREATH];
+    this.breath = wb > 0 ? (rest * BASE_WEIGHT + vsum[KEY_BREATH]) / (BASE_WEIGHT + wb) : rest;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Beats (engines/vocal-beats.ts)                                     */
+  /* ---------------------------------------------------------------- */
+
+  /**
+   * A beat's gestures, its acoustic hit at h: CHIMERA's scores (phonetics/beatbox.rs), each sound a
+   * short score on the tract with the airstream beatboxers use. `len` is the time to the next step,
+   * which a sustained sound may fill. `first`: the line's first sound, whose ready posture starts early.
+   */
+  private beatScore(slot: number, h: number, len: number, first: boolean): void {
+    const b = slot >> 1;
+    const accent = (slot & 1) === 1 ? 1.3 : 1;
+    const hum = b === B_HUM;
+    // the ready posture: jaw nearly closed, lips just apart, the dorsum a little high for the velar hits
+    const sch = P_SCHWA * ARTICULATORS;
+    this.begin();
+    for (let k = 0; k < ARTICULATORS; k++) {
+      if (k === ART.velum) continue;
+      let v = this.vowelT[sch + k];
+      if (k === ART.tbY) v += 0.1;
+      else if (k === ART.jaw) v = 0.4;
+      else if (k === ART.lipAp) v = 0.25;
+      else if (k === ART.lipProt) v = 0.1;
+      this.key(k, v);
+    }
+    this.emit(first ? h - 0.15 : h, h + len, 0.03, 0.03, 1, 0);
+    if (!hum) {
+      // the velum shut, so the pressure a sound builds stays in the mouth
+      this.begin();
+      this.key(ART.velum, this.vowelT[sch + ART.velum]);
+      this.emit(first ? h - 0.15 : h - 0.02, h + len, 0.03, 0.03, 4, 0);
+    }
+    const NaN_ = NaN;
+    if (b === B_KICK) {
+      this.beatOral(P_P, h - 0.075, h, 2, 3.5, 0.01, NaN_, false, ART.jaw, 0.3, -1, 0, false);
+      // the tongue body high in the mouth, short of the palate: the larynx compresses the volume behind
+      // the lips, and the less of it the higher the pressure (dP = rho c^2 dV / V; MEASURED: the open
+      // mouth's kick reached 7 cmH2O where the velar rimshot reached 19)
+      this.artic(ART.tbY, KICK_TBY, h - 0.09, h + 0.01, 0.03, 0.04, 2);
+      this.ejective(h - 0.075, h, accent);
+    } else if (b === B_HAT || b === B_CHAT) {
+      const fric = b === B_HAT ? P_S : P_SH;
+      const end = b === B_HAT ? 0.03 : 0.05;
+      this.beatOral(P_T, h - 0.05, h, 2, 3.5, 0.01, NaN_, false, ART.jaw, 0.3, -1, 0, false);
+      this.beatOral(fric, h + 0.012, h + end, 1.6, 0, 0, 0.008, false, -1, 0, -1, 0, false);
+      this.blow(h - 0.03, h + end - 0.004, (b === B_HAT ? 1.25 : 1.3) * accent, b === B_HAT ? 0.36 : 0.38, 0.02);
+    } else if (b === B_OPEN_HAT) {
+      const end = Math.max(0.09, Math.min(0.26, len * 1.6));
+      this.beatOral(P_T, h - 0.05, h, 2, 3.5, 0.01, NaN_, false, ART.jaw, 0.3, -1, 0, false);
+      this.beatOral(P_S, h + 0.012, h + end, 1.4, 0, 0, 0.008, false, -1, 0, -1, 0, false);
+      this.blow(h - 0.03, h + end, 1.2 * accent, 0.4, 0.09);
+    } else if (b === B_SNARE || b === B_PSH) {
+      const pf = b === B_SNARE;
+      this.beatOral(P_P, h - 0.06, h, 2, 3.5, 0.01, NaN_, false, -1, 0, -1, 0, false);
+      this.beatOral(pf ? P_F : P_SH, h + 0.018, h + (pf ? 0.08 : 0.11), pf ? 1.6 : 1.5, 0, 0, 0.008, false, -1, 0, -1, 0, false);
+      this.blow(h - 0.045, h + (pf ? 0.075 : 0.1), 1.7 * accent, 0.45, pf ? 0.04 : 0.05);
+    } else if (b === B_RIM) {
+      this.beatOral(P_K, h - 0.08, h, 2, 4, 0.008, NaN_, false, ART.jaw, 0.35, -1, 0, false);
+      this.ejective(h - 0.08, h, accent);
+    } else if (b === B_INWARD) {
+      this.beatOral(P_K, h - 0.06, h, 2, 4, 0.008, NaN_, false, ART.jaw, 0.35, -1, 0, false);
+      this.beatOral(P_K, h + 0.012, h + 0.085, 1.4, 0, 0, 0.008, true, ART.tbY, this.xTbY - 0.015, -1, 0, false);
+      this.begin();
+      this.key(KEY_ABDUCTION, 0.5);
+      this.emit(h - 0.05, h + 0.085, 0.02, 0.04, 6, 0);
+      // the breath drawn in behind the closure, so the release rushes inward
+      this.begin();
+      this.key(KEY_BREATH, -1.7 * accent);
+      this.emit(h - 0.035, h + 0.085, 0.015, 0.05, 2, 0);
+    } else if (b === B_CLICK) {
+      // the tip seals without the alveolar's fronted tongue body (that would close the pocket)
+      this.beatOral(P_T, h - 0.12, h, 2, 3.5, 0.01, NaN_, false, -1, 0, -1, 0, true);
+      // the back seal sits low, leaving a pocket for the dorsum to hollow
+      this.beatOral(P_K, h - 0.12, h + 0.035, 2, 0, 0, NaN_, false, ART.tbY, 7.85, ART.jaw, 0.4, false);
+      this.artic(ART.dorsum, 1, h - 0.03, h + 0.006, 0.04, 0.03, 2);
+    } else if (b === B_POP) {
+      // a light seal: pressing the lips squeezes the pocket before the suction starts
+      this.beatOral(P_P, h - 0.12, h, 2, 5, 0.006, NaN_, false, ART.lipAp, -0.08, -1, 0, false);
+      this.beatOral(P_K, h - 0.12, h + 0.03, 2, 0, 0, NaN_, false, -1, 0, -1, 0, false);
+      // the lips stay sealed while the jaw and tongue hollow the mouth
+      this.begin();
+      this.key(ART.jaw, 1.6);
+      this.key(ART.dorsum, 1);
+      const g = this.emit(h - 0.07, h + 0.004, 0.04, 0.05, 40, 2);
+      if (g >= 0) this.rankAs(g, 2);
+    } else if (b === B_CRASH) {
+      const end = Math.max(0.14, Math.min(0.34, len * 2));
+      // the back of the tongue lingers by the velum after the burst ([x]) while the blade rises into a long [ʃ]
+      this.beatOral(P_K, h - 0.06, h, 2, 4, 0.008, NaN_, false, -1, 0, -1, 0, false);
+      this.beatOral(P_K, h + 0.002, h + 0.045, 2, 0, 0, 0.008, true, ART.tbY, this.xTbY, -1, 0, false);
+      this.beatOral(P_SH, h + 0.025, h + end, 1.4, 0, 0, 0.008, false, -1, 0, -1, 0, false);
+      this.blow(h - 0.035, h + end, 1.75 * accent, 0.45, 0.14);
+    } else if (b === B_HUM) {
+      const end = Math.max(0.06, len * 0.92);
+      // lips shut before the voice starts, so the note begins as a hum; the velum drops into the
+      // sealed mouth while the folds are still apart, so the squeezed air does not pop out the nose
+      this.beatOral(P_M, h - 0.03, h + end, 1.6, 0, 0, NaN_, false, -1, 0, -1, 0, false);
+      this.begin();
+      this.key(ART.velum, 0.9);
+      this.emit(h - 0.02, h + end, 0.03, 0.03, 4, 0);
+      this.begin();
+      this.key(KEY_ABDUCTION, 0.3);
+      this.emit(h - 0.08, h - 0.03, 0.02, 0.02, 5, 0);
+      this.begin();
+      this.key(KEY_BREATH, 0.95 * accent);
+      this.emit(h - 0.01, h + end, 0.02, 0.04, 1, 0);
+    }
+    // B_REST: the ready posture only
+  }
+
+  /**
+   * A consonant's oral gestures for a beat, from table phoneme `idx`'s targets with up to two
+   * overrides (k1, v1 and k2, v2; -1 for none). `snap` > 0 releases at that speed over `snapRo`
+   * (beatboxers snap their releases, the heavy dorsum too); `after` (not NaN) shortens every ramp
+   * in, for a release fricative that must not pry the closure open early; `fric` makes a stop's
+   * place a fricative ([x] from /k/); `noFront` leaves out the tongue body's alveolar fronting.
+   */
+  private beatOral(
+    idx: number,
+    a: number,
+    b: number,
+    speed: number,
+    snap: number,
+    snapRo: number,
+    after: number,
+    fric: boolean,
+    k1: number,
+    v1: number,
+    k2: number,
+    v2: number,
+    noFront: boolean,
+  ): void {
+    const src = this.consT;
+    const row = idx * ARTICULATORS;
+    const T = this.beatT;
+    for (let k = 0; k < ARTICULATORS; k++) T[k] = k === k1 ? v1 : k === k2 ? v2 : src[row + k];
+    const dom = DOMINANT[idx];
+    const bodyOnly = BODY_ONLY[idx] === 1;
+    const m = MANNER[idx];
+    const closing = !fric && (m === M_STOP || m === M_NASAL || m === M_AFFRICATE);
+    const lipsOnly = LIPS_ONLY[idx] === 1;
+    const lead = closing ? (bodyOnly ? 0.039 : lipsOnly ? 0.025 : 0.024) : 0;
+    const early = closing ? (bodyOnly ? 0.024 : lipsOnly ? 0.022 : 0.031) : 0.008;
+    const ri = after === after ? Math.min(0.03, after) : 0.03;
+    const sp = snap > 0 ? snap : bodyOnly ? 1 + (speed - 1) * 0.35 : speed;
+    this.begin();
+    const bilabial = closing && RANK[idx] === 0;
+    for (let k = 0; k < ARTICULATORS; k++) {
+      if (!(dom & (1 << k))) continue;
+      this.key(k, bilabial && k === ART.lipAp && k1 !== ART.lipAp ? LIP_VIRTUAL : T[k]);
+    }
+    const ro = snap > 0 ? snapRo : bodyOnly ? 0.03 : 0.018;
+    const g = this.emit(a - early, Math.max(a + 0.01, b - lead), ri, ro, 40, sp);
+    if (g >= 0) {
+      const rs = snap > 0 ? snap : RETURN_SPEED[idx];
+      let hz = 0;
+      for (let k = 0; k < ARTICULATORS; k++) if (dom & (1 << k) && VOCAL_ARTICULATOR_HZ[k] > hz) hz = VOCAL_ARTICULATOR_HZ[k];
+      this.gRet[g] = rs;
+      this.gHold[g] = CRITDAMP_SETTLE_98 / (2 * Math.PI * (hz > 0 ? hz : 10) * rs);
+      this.gRank[g] = (closing ? 0 : 16) + (RANK[idx] >= 0 ? RANK[idx] : 0);
+    }
+    const tbXSet = T[ART.tbX] === T[ART.tbX];
+    if (!noFront && ALVEOLAR[idx] === 1 && !tbXSet) {
+      this.begin();
+      this.key(ART.tbX, 3.2);
+      this.key(ART.tbY, 7.4);
+      this.emit(a, b, Math.min(0.05, ri + 0.02), 0.05, 1.2, 0);
+    }
+    this.begin();
+    for (let k = 0; k < ARTICULATORS; k++) {
+      if (dom & (1 << k)) continue;
+      if (noFront && (k === ART.tbX || k === ART.tbY)) continue;
+      const v = T[k];
+      if (v === v) this.key(k, v);
+    }
+    this.emit(a, b, Math.min(0.05, ri + 0.02), 0.05, 2.2, 0);
+  }
+
+  /** One articulator held at a target over [t0, t1] at strength 40, moving at `speed`. */
+  private artic(k: number, v: number, t0: number, t1: number, ri: number, ro: number, speed: number): void {
+    this.begin();
+    this.key(k, v);
+    const g = this.emit(t0, t1, ri, ro, 40, speed);
+    if (g >= 0) this.rankAs(g, speed);
+  }
+
+  /** Give gesture g a consonant's rank, so its speed governs its articulators coming and going. */
+  private rankAs(g: number, speed: number): void {
+    this.gRank[g] = 30;
+    this.gRet[g] = speed;
+    this.gHold[g] = 0.02;
+  }
+
+  /** The glottalic piston: the glottis sealed through the closure, the larynx raised just before the release at h. */
+  private ejective(at: number, h: number, accent: number): void {
+    this.begin();
+    this.key(KEY_CLOSURE, 1);
+    this.emit(at - 0.012, h + 0.03, 0.012, 0.03, 8, 0);
+    this.begin();
+    this.key(ART.larynx, Math.min(1.6, 1.25 + 0.3 * accent));
+    // still rising through the release: the piston, not the few tenths of a cm^3 the closure
+    // compressed, drives the puff that follows the burst
+    const g = this.emit(h - 0.05, h + EJECTIVE_PUSH, 0.03, 0.08, 40, 3);
+    if (g >= 0) this.rankAs(g, 3);
+  }
+
+  /**
+   * Lung pressure (times the note's) over [t0, t1], with the glottis held open until the breath has
+   * gone, or the folds would start to buzz on what is left.
+   */
+  private blow(t0: number, t1: number, level: number, abduction: number, tail: number): void {
+    this.begin();
+    this.key(KEY_ABDUCTION, abduction);
+    this.emit(t0, t1 + tail + 0.02, 0.02, 0.03, 6, 0);
+    this.begin();
+    this.key(KEY_BREATH, level);
+    this.emit(t0 - 0.01, t1, 0.02, tail, 1, 0);
   }
 
   /** A cricothyroid stiffness gesture from t0, full until t1, ramping out over STIFF_RELEASE. */

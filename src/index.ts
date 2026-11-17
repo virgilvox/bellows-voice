@@ -23,6 +23,7 @@ export {
   type SpeakOptions,
   type SingResult,
   type SingerOptions,
+  type BeatboxOptions,
 } from './singer';
 export { VOICE_PRESETS, SPEECH_HZ_BY_BODY, voicePreset, speechHzForBody, type VoicePreset, type VoiceGroup } from './voices';
 export { sungEvents, type SungEventOptions, type SungEvents, type SungWindow } from './sing';

@@ -110,7 +110,7 @@ describe('lyricsToSyllables, the conventions', () => {
         'Breathe in, breathe out, I am made of air. Tongue and lips and throat, singing anywhere.',
         'Breathe in /breathe out /I am made of air /Ton-gue and lips and throat /sin-ging a-ny-where /',
         // upstream: ... ɪ æm meɪd ɑf eɪɹ tɑŋ.gu ænd lɪps ænd ...
-        'bɹið ɪn bɹið aʊt aɪ æm meɪd ʌv eɪɹ tɑŋ.gu ənd lɪps ənd θɹoʊt sɪŋ.ɪŋ ɛ.ni.wɛɹ',
+        'bɹið ɪn bɹið aʊt aɪ æm meɪd ʌv ɛɹ tɑŋ.gu ənd lɪps ənd θɹoʊt sɪŋ.ɪŋ ɛ.ni.wɛɹ',
       ],
       // upstream: æ æ æ; a letter with no vowel now keeps its note on its own sound rather than vanishing
       ['a -b c- d - e ~f g~ ~', 'a b c d ~~ f g ~~ ', 'ə b k d d f g g'],

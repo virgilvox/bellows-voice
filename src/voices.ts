@@ -170,6 +170,15 @@ export const VOICE_PRESETS: readonly VoicePreset[] = [
     speechHz: 125,
     range: [43, 62],
   },
+  {
+    id: 'beatboxer',
+    name: 'Beatboxer',
+    group: 'male',
+    description: 'a male voice on a close microphone, for beatbox(): the mic hears the air of each kick and snare',
+    params: { body: 0, mic: 0.8, level: 0.9 },
+    speechHz: 115,
+    range: [40, 64],
+  },
 ];
 
 /** A preset by id; undefined if there is none. */

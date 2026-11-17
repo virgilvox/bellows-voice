@@ -10,7 +10,7 @@ export const VOCAL_ENGINE_INFO: EngineInfo = {
     {
       "name": "phoneme",
       "min": 0,
-      "max": 53,
+      "max": 79,
       "default": 1
     },
     {
@@ -140,6 +140,12 @@ export const VOCAL_ENGINE_INFO: EngineInfo = {
       "default": 0
     },
     {
+      "name": "mic",
+      "min": 0,
+      "max": 1,
+      "default": 0
+    },
+    {
       "name": "tuning",
       "min": 0,
       "max": 1,
@@ -155,7 +161,7 @@ export const VOCAL_ENGINE_INFO: EngineInfo = {
     {
       "name": "nextPhoneme",
       "min": 0,
-      "max": 53,
+      "max": 79,
       "default": 0
     }
   ],

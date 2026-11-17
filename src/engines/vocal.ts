@@ -102,7 +102,8 @@ import { PitchGlide } from '../dsp/pitchglide';
 import { Adsr } from 'bellowsjs';
 import { CM_H2O, SOUND_SPEED } from '../dsp/air';
 import { GLOTTIS_GEOMETRIC, GLOTTIS_PULSE, GLOTTIS_SELF_OSCILLATING, JunctionAirway, ductMin } from '../dsp/junction-airway';
-import { VOCAL_DEFAULT_PHONEME, VOCAL_PHONEMES } from './vocal-phonemes';
+import { VOCAL_DEFAULT_PHONEME } from './vocal-phonemes';
+import { VOCAL_SOUND_COUNT } from './vocal-beats';
 import { VOCAL_BODIES, VOCAL_NEUTRAL } from './vocal-tables.gen';
 import { ART, ARTICULATORS } from './vocal-articulators';
 import { ARTICULATOR_MAX, ARTICULATOR_RATE, ARTICULATOR_TARGET_MIN, LIP_COMPRESSED, VocalPlanner, restTipFrom } from './vocal-planner';
@@ -112,7 +113,8 @@ import { VOCAL_GLIDE_DEFAULTS, vocalDamping, vocalGlideSpeed } from './vocal-lea
 
 export { VOCAL_PLAN_LEAD, vocalDamping, vocalGlideLead, vocalGlideSpeed } from './vocal-lead';
 
-const PHONEMES = VOCAL_PHONEMES.length;
+/** Every sound on the `phoneme` parameter: the phonemes, then the beats (engines/vocal-beats.ts). */
+const PHONEMES = VOCAL_SOUND_COUNT;
 
 
 /** The largest jaw opening the tuning rule uses (template cm). */
@@ -199,6 +201,11 @@ class VocalVoice implements Voice {
   private readonly abdAt = new Float64Array(STEPS + 1);
   private readonly cloAt = new Float64Array(STEPS + 1);
   private readonly stfAt = new Float64Array(STEPS + 1);
+  /** The planner's breath (a factor on lung pressure) and whether a beat line holds it, per step. */
+  private readonly lungAt = new Float64Array(STEPS + 1);
+  private readonly beatOn = new Uint8Array(STEPS + 1);
+  private lungFactor = 1;
+  private beatLine = 0;
   /** A contact's new position for each axis (x then y), for CascadeBank.placeFrom. */
   private readonly placed = new Float64Array(2);
   /** The time of the articulator step or block being computed, s (a field: no double crosses a call). */
@@ -388,6 +395,9 @@ class VocalVoice implements Voice {
       case 'ring':
         this.ring = clamp(value, 0, 1);
         return;
+      case 'mic':
+        this.air.mic = clamp(value, 0, 1);
+        return;
       case 'tuning':
         this.tuning = clamp(value, 0, 1);
         return;
@@ -524,7 +534,8 @@ class VocalVoice implements Voice {
     this.planner.addNow(this.phonemeParam, 0);
     this.glide.snap(this.bendParam);
     this.pLungTarget = clamp(4 + 6.25 * this.vel, 5, 15);
-    this.pLung = this.planner.silentAt(0) ? 0 : 0.94 * this.pLungTarget;
+    // a beat line starts breath-held: the beatboxer breathes only into a sound
+    this.pLung = this.planner.silentAt(0) || this.planner.beatAt(0) ? 0 : 0.94 * this.pLungTarget;
     this.pCoupleHz = COUPLE * (this.noteHz / 120);
     this.pEar = 0;
     this.tuneJaw = 0;
@@ -550,6 +561,8 @@ class VocalVoice implements Voice {
       this.abdAt[q] = this.abduction;
       this.cloAt[q] = this.closure;
       this.stfAt[q] = this.stiffness;
+      this.lungAt[q] = this.lungFactor;
+      this.beatOn[q] = this.beatLine;
     }
     this.intervalLeft = 0;
     this.blockInInterval = 0;
@@ -588,6 +601,8 @@ class VocalVoice implements Voice {
     this.abduction = (0.1 * b * b + 0.008 + 0.03 * b) * k2 + this.planner.abduction * k2;
     this.closure = this.planner.closure;
     this.stiffness = this.planner.stiffness;
+    this.lungFactor = this.planner.breath;
+    this.beatLine = this.planner.beat;
   }
 
   /** One articulator step ending at time `at`. */
@@ -685,12 +700,16 @@ class VocalVoice implements Voice {
     this.abdAt[0] = this.abdAt[STEPS];
     this.cloAt[0] = this.cloAt[STEPS];
     this.stfAt[0] = this.stfAt[STEPS];
+    this.lungAt[0] = this.lungAt[STEPS];
+    this.beatOn[0] = this.beatOn[STEPS];
     for (let q = 1; q <= STEPS; q++) {
       this.at = (this.pos + q * this.stepEvery) / sr;
       this.step();
       this.abdAt[q] = this.abduction;
       this.cloAt[q] = this.closure;
       this.stfAt[q] = this.stiffness;
+      this.lungAt[q] = this.lungFactor;
+      this.beatOn[q] = this.beatLine;
     }
     this.art.set(this.bank.values);
     this.drive.key(this.art, false);
@@ -721,6 +740,8 @@ class VocalVoice implements Voice {
     air.chink = (0.008 + 0.03 * this.breath) * k2;
     const stiff = this.stfAt[s0] + (this.stfAt[s1] - this.stfAt[s0]) * fr;
     air.xRel = 1 - STIFF_SWING * stiff;
+    const lung = this.lungAt[s0] + (this.lungAt[s1] - this.lungAt[s0]) * fr;
+    const beatLine = this.beatOn[s0] | this.beatOn[s1];
     const t = (this.pos + blk / 2) / sr;
     const p = this.planner;
     p.at = t;
@@ -756,8 +777,9 @@ class VocalVoice implements Voice {
 
     // the sung breath (planner.rs:376-379): full drive from the note-on to its end, off in silences
     const gate = t < this.end && p.silent === 0 ? 1 : 0;
-    const tau = gate ? 0.025 : 0.05;
-    this.pLung += (this.pLungTarget * gate - this.pLung) * (1 - Math.exp(-blk / sr / tau));
+    // a beat's breath is a gesture of its own, tens of milliseconds long: the lungs follow it closely
+    const tau = beatLine === 1 ? 0.003 : gate ? 0.025 : 0.05;
+    this.pLung += (this.pLungTarget * gate * lung - this.pLung) * (1 - Math.exp(-blk / sr / tau));
     air.pLung = this.pLung * CM_H2O;
     // velocity is lung pressure above 0.2; under it the note also fades, so velocity 0 is silent
     air.gain = OUTPUT_GAIN * this.level * Math.min(this.vel / 0.2, 1);
@@ -820,6 +842,7 @@ const PARAMS: ParamSpec[] = [
   { name: 'overshoot', min: 0, max: 0.5, default: DEFAULTS.overshoot },
   { name: 'preparation', min: 0, max: 1, default: DEFAULTS.preparation },
   { name: 'ring', min: 0, max: 1, default: 0 },
+  { name: 'mic', min: 0, max: 1, default: 0 },
   { name: 'tuning', min: 0, max: 1, default: 0 },
   { name: 'nextIn', min: 0, max: 1, default: 0, unit: 's' },
   { name: 'nextPhoneme', min: 0, max: PHONEMES - 1, default: 0 },

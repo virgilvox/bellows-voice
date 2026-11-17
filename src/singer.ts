@@ -13,6 +13,7 @@ import type { PronouncingDictionary, SungPlan, Syllable } from './lyrics/types';
 import { lyricsToSyllables } from './lyrics/read';
 import { resolveAccent, type Accent } from './lyrics/accents';
 import { speechPlan } from './lyrics/speech';
+import { BEAT_LEAD_IN, beatLine, type BeatPattern, type BeatTiming } from './lyrics/beat';
 import { planSung, type PlanSungOptions } from './lyrics/sing';
 import { sungEvents, type SungWindow } from './sing';
 import { VOCAL_PLAN_LEAD, vocalGlideLead } from './engines/vocal-lead';
@@ -68,6 +69,15 @@ export interface SpeakOptions {
  * lead-in: a phrase that opens on an aspirated p, t or k releases it early, so its vowel is voiced
  * on the beat. Live, call at least that far ahead of the first beat.
  */
+export interface BeatboxOptions extends BeatTiming {
+  /** Context time of the first step's hit. Left out, as soon as the line's lead-in can sound. */
+  at?: number;
+  /** A hum's pitch where its step names none: a note through the tuning, or { hz }. Default 0.75 of speechHz. */
+  note?: NoteValue;
+  /** Velocity 0..1: the breath behind every sound. Default 0.8. */
+  vel?: number;
+}
+
 export interface SingResult extends SungPlan {
   /** IPA the vocal engine has no phoneme for, each once; those spans keep the sound before them. */
   unknown: string[];
@@ -212,6 +222,23 @@ export class Singer {
     );
     // spoken consonants at their full spoken length, where sung ones are shortened (durations.ts)
     return this.post(plan.syllables, notes, { at: opts.at }, { consonantScale: 1 });
+  }
+
+  /**
+   * Beatbox a pattern ('B . t . | Pf . t .', see parseBeat and BEAT_PRESETS): each sound made on the
+   * voice's own tract with a beatboxer's airstream (an ejective kick, an inward snare, clicks, a hummed
+   * bass). One throat, so a pattern is monophonic, and the whole of it is one breath group.
+   */
+  beatbox(pattern: BeatPattern | string, opts: BeatboxOptions = {}): SingResult {
+    const line = beatLine(pattern, opts);
+    const humDefault: NoteValue = opts.note ?? { hz: 0.75 * this.speechHz };
+    let pitch: NoteValue = humDefault;
+    const notes: SingNote[] = line.steps.map((step, i) => {
+      if (step !== null && step.id === 'm') pitch = step.note ?? humDefault;
+      return { note: pitch, dur: { seconds: line.durs[i] }, vel: opts.vel };
+    });
+    const at = opts.at === undefined ? undefined : opts.at - BEAT_LEAD_IN;
+    return this.post(line.syllables, notes, { at });
   }
 
   /** Play a note on the voice's own phoneme (an "ah" unless `phoneme` is set), as the instrument's note() does. */

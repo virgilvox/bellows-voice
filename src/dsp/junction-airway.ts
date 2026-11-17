@@ -239,6 +239,17 @@ const VELUM_KIN = 0.3;
 const VELUM_EXIT = 0.8;
 /** Output high-pass (DC) and low-pass corners, Hz; the low-pass stands in for CHIMERA's decimator. MEASURED. */
 const OUTPUT_HP = 25;
+/**
+ * The close microphone's distance from the lips at `mic` 1, cm. A pressure-gradient (directional)
+ * microphone answers the air's particle velocity, which near a small source carries a term in the
+ * flow itself on top of the far field's flow derivative: for a monopole, u = p (1 + 1 / (j k r)) / (rho c),
+ * so a cardioid (half pressure, half gradient) at r hears dU/dt + (c / 2r) U. Below c / (2 pi r),
+ * 2.8 kHz at 2 cm, the flow term rises over the far field: the proximity effect, and the puff of a
+ * plosive on the diaphragm, which is what makes a beatboxed kick thump on a microphone.
+ */
+const MIC_R = 2;
+/** The microphone's low cut on its flow term, Hz: a slow tongue or jaw pushing air out is not a thump. */
+const MIC_LOW_CUT = 70;
 const OUTPUT_LP = 18000;
 /** The moving-wall flow is smoothed by CHIMERA's 60 Hz two-pole (network.rs:360). */
 const DVDT_HZ = 60;
@@ -296,6 +307,12 @@ export class JunctionAirway {
   velum = 0;
   /** Lung pressure, dyn/cm^2. */
   pLung = 0;
+  /** How close a directional microphone is, 0 (the far field) to 1 (a cardioid MIC_R from the lips). */
+  mic = 0;
+  /* The microphone flow term's low cut: its state and pole. */
+  private micX = 0;
+  private micY = 0;
+  private readonly micC: number = 0;
   /** The static glottal opening (abduction), cm^2. */
   agStatic = 0.02;
   /** How far the folds are held shut, 0..1 (a glottal stop). */
@@ -590,6 +607,7 @@ export class JunctionAirway {
     this.areaBuf = new Float64Array(this.block);
     this.areaArgs = [this.areaBuf, 0, this.block];
     this.hpC = Math.exp((-2 * Math.PI * OUTPUT_HP) / rate);
+    this.micC = Math.exp((-2 * Math.PI * MIC_LOW_CUT) / rate);
     const fc = Math.min(OUTPUT_LP, 0.45 * rate);
     const K = Math.tan((Math.PI * fc) / rate);
     const q = Math.SQRT1_2;
@@ -693,6 +711,7 @@ export class JunctionAirway {
     this.dpGlottis = this.dpSmooth = 0;
     this.pSub = this.pSubSmooth = 0;
     this.uLips = this.uNose = 0;
+    this.micX = this.micY = 0;
     this.aVib = this.aVib0 = 0;
     this.agAcc = 0;
     this.agMean = 0.05;
@@ -1012,7 +1031,8 @@ export class JunctionAirway {
    * for the block (Birkholz 2014). Integers only cross this call; the doubles are fields.
    */
   private placeSources(): void {
-    const pl = this.pLung > 0 ? this.pLung : 0;
+    // either way: a breath drawn in (a beatbox inward snare) drives its jets as hard as one blown out
+    const pl = this.pLung > 0 ? this.pLung : -this.pLung;
     this.vMax = 1.2 * Math.sqrt((2 * pl) / RHO) + 100;
     const k = this.k;
     const k2 = k * k;
@@ -1326,6 +1346,8 @@ export class JunctionAirway {
     const blk = this.block;
     const inv = 1 / blk;
     const gain = this.gain;
+    const micK = (this.mic * SOUND_SPEED) / (2 * MIC_R);
+    const micC = this.micC;
     const lungZ = (0.5 * RHOC) / tr.area[0];
     const trLast = tr.nn - 2;
     const trSegF = trLast * TUBE_RING;
@@ -1648,7 +1670,12 @@ export class JunctionAirway {
       const rad = this.uLips + this.uNose + this.wallRadAcc + wallRad;
       this.wallRadAcc = 0;
       wallRad = 0;
-      const o = (rad - this.radPrev) * iT * OUTPUT_GAIN;
+      // the far field's flow derivative, and the close microphone's flow term (DC blocked below)
+      const mf = micK * rad;
+      const mh = mf - this.micX + micC * this.micY;
+      this.micX = mf;
+      this.micY = mh;
+      const o = ((rad - this.radPrev) * iT + mh) * OUTPUT_GAIN;
       this.radPrev = rad;
       const hp = o - this.hpX + this.hpC * this.hpY;
       this.hpX = o;

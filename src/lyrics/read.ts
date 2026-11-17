@@ -32,7 +32,7 @@ import type { FrontEnd, PronouncingDictionary, Syllable } from './types';
 import { englishFrontEnd } from './english';
 import { ipaFrontEnd } from './ipa-front-end';
 import { applyAllophones } from './allophones';
-import { GENERAL_AMERICAN, applyAccent, resolveAccent, type Accent } from './accents';
+import { applyAccent, resolveAccent, type Accent } from './accents';
 
 const SPACE = /\s/;
 /** A word character in any script: a delimited word may not open right after one. */
@@ -120,7 +120,8 @@ export function lyricsToSyllables(
   const out = readLyrics(text, [tagged, ipaFrontEnd]);
   const accent = resolveAccent(opts.accent);
   const isEnglish = (syl: Syllable) => read.has(syl);
-  if (accent !== GENERAL_AMERICAN) applyAccent(out, isEnglish, accent);
+  // General American too: its sets say what the reader cannot (the vowels before r)
+  applyAccent(out, isEnglish, accent);
   // flaps and dark l need the next sound, which can be in the next word (allophones.ts)
   if (opts.allophones !== false) applyAllophones(out, isEnglish, { t: accent.t, l: accent.l });
   return out;

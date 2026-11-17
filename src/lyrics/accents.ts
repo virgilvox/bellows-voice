@@ -131,7 +131,13 @@ export const GENERAL_AMERICAN: Accent = {
   name: 'General American',
   region: 'North America',
   rhotic: true,
-  sets: {},
+  /*
+   * Before an r in its own syllable American English keeps no tense and lax pair apart (pre-rhotic
+   * neutralization: Wells 1982, section 6.1; Kenyon and Knott): "fair" is fɛɹ, not feɪɹ, "board"
+   * bɔɹd, "near" nɪɹ, "poor" pʊɹ. The CMU dictionary writes it so; spelling rules read "ai", "oa",
+   * "ea" and "oo" as their free vowels, so the sets say it here, for every word.
+   */
+  sets: { NEAR: 'ɪ', SQUARE: 'ɛ', FORCE: 'ɔ', CURE: 'ʊ' },
   t: 'flap',
   l: 'dark-coda',
   th: 'fricative',

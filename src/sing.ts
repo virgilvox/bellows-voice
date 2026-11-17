@@ -117,6 +117,7 @@ import {
   vocalReleaseAspirated,
   vocalReleaseVot,
 } from './engines/vocal-phonemes';
+import { BEAT_PREFIX, beatTokenIndex, vocalIsBeat } from './engines/vocal-beats';
 
 /** The silence a phrase opens from, '_' in VOCAL_PHONEMES. */
 const SILENCE = vocalPhonemeIndex('_');
@@ -207,7 +208,8 @@ export function sungEvents(plan: SungPlan, opts: SungEventOptions): SungEvents {
 }
 
 function isVowel(idx: number): boolean {
-  return VOCAL_ACOUSTICS[idx].cls === 'vowel';
+  // a beat (engines/vocal-beats.ts) sits past the phoneme table
+  return VOCAL_ACOUSTICS[idx]?.cls === 'vowel';
 }
 
 function phraseEvents(phrase: SungPhrase, noteId: number, opts: SungEventOptions, busy: SungWindow[], result: SungEvents): void {
@@ -226,7 +228,7 @@ function phraseEvents(phrase: SungPhrase, noteId: number, opts: SungEventOptions
   });
   const unknown = result.unknown;
   const lookup = (ipa: string): number => {
-    const idx = vocalPhonemeIndex(ipa);
+    const idx = ipa.startsWith(BEAT_PREFIX) ? beatTokenIndex(ipa) : vocalPhonemeIndex(ipa);
     if (idx < 0 && !unknown.includes(ipa)) unknown.push(ipa);
     return idx;
   };
@@ -238,7 +240,8 @@ function phraseEvents(phrase: SungPhrase, noteId: number, opts: SungEventOptions
   phrase.spans.forEach((span, s) => {
     const idx = lookup(span.ipa);
     if (s === 0) sound = idx < 0 ? SILENCE : idx;
-    else if (idx < 0 || idx === sound) return;
+    // a beat strikes again on its own; a phoneme that repeats is the same sound held
+    else if (idx < 0 || (idx === sound && !vocalIsBeat(idx))) return;
     else sound = idx;
     times.push(s === 0 ? phrase.start : span.start);
     sounds.push(sound);

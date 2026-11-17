@@ -74,5 +74,9 @@ export type {
   SungPlan,
 } from './lyrics/types';
 
+/* beatbox patterns, their sounds and timing: data too */
+export { parseBeat, formatBeat, beatLine, beatStepSeconds, BEAT_PRESETS, BEAT_LEAD_IN, MAX_BEAT_STEPS, type BeatStep, type BeatPattern, type BeatPreset, type BeatTiming, type BeatLine } from './lyrics/beat';
+export { VOCAL_BEATS, vocalBeatIndex, type VocalBeat, type BeatRole, type Airstream } from './engines/vocal-beats';
+
 /* starter voices are data too: what a UI lists, with no audio */
 export { VOICE_PRESETS, SPEECH_HZ_BY_BODY, voicePreset, speechHzForBody, type VoicePreset, type VoiceGroup } from './voices';

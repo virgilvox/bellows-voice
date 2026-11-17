@@ -224,6 +224,23 @@ describe('speech', () => {
     expect(even[0].dur + even[1].dur).toBeCloseTo(timed[0].dur + timed[1].dur, 9);
   });
 
+  it('keeps no tense vowel before r in its own syllable in General American', () => {
+    // read by the spelling rules, which gave feɪɹ, boʊɹd, niɹ and puɹ
+    const ga = (w: string) => toIPA(w, { accent: 'general-american' });
+    expect(ga('fair')).toBe('fɛɹ');
+    expect(ga('chair')).toBe('tʃɛɹ');
+    expect(ga('board')).toBe('bɔɹd');
+    expect(ga('roar')).toBe('ɹɔɹ');
+    expect(ga('near')).toBe('nɪɹ');
+    expect(ga('poor')).toBe('pʊɹ');
+    // untouched: vowels before r that the reader already had right, and free vowels elsewhere
+    expect(ga('four')).toBe('fɔɹ');
+    expect(ga('fire')).toBe('faɪɹ');
+    expect(ga('start')).toBe('stɑɹt');
+    expect(ga('trade')).toBe('tɹeɪd');
+    expect(ga('boat')).toBe('boʊt');
+  });
+
   it('sounds the last syllable of a phrase to its final consonants', () => {
     // the tone moves inside the last syllable, and its coda still closes it (hot, not "haw")
     const spoken = (text: string, questions: boolean[] = []): string => {
@@ -238,8 +255,8 @@ describe('speech', () => {
     expect(spoken('hot')).toBe('hɑt');
     expect(spoken('trade')).toBe('tɹeid');
     expect(spoken('start')).toBe('stɑɹt');
-    expect(spoken('board')).toBe('bouɹd');
-    expect(spoken('roar')).toBe('ɹouɹ');
+    expect(spoken('board')).toBe('bɔɹd');
+    expect(spoken('roar')).toBe('ɹɔɹ');
     expect(spoken('start the car, now go home')).toBe('stɑɹtðəkɑɹ|naʊgouhoum');
     expect(spoken('is it hot', [true])).toBe('ɪzɪthɑt');
   });

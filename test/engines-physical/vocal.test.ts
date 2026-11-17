@@ -13,6 +13,7 @@
  * integration's scratch harness (docs/VOICE-2.md, "Into the library").
  */
 
+import { VOCAL_SOUND_COUNT } from '../../src/engines/vocal-beats';
 import { describe, expect, it } from 'vitest';
 import v8 from 'node:v8';
 import { PerformanceObserver, performance } from 'node:perf_hooks';
@@ -269,9 +270,11 @@ describe('vocal engine: definition', () => {
     expect(vocalEngine.polyphony).toBe(8);
     const byName = Object.fromEntries(vocalEngine.params.map((p) => [p.name, p]));
     expect(Object.keys(byName).sort()).toEqual(
-      ['phoneme', 'bend', 'glide', 'body', 'tension', 'roughness', 'fry', 'drift', 'glottis', 'breath', 'vibratoRate', 'vibratoDepth', 'vibratoDelay', 'articulation', 'attack', 'release', 'level', 'overshoot', 'preparation', 'ring', 'tuning', 'nextPhoneme', 'nextIn'].sort(),
+      ['phoneme', 'bend', 'glide', 'body', 'tension', 'roughness', 'fry', 'drift', 'glottis', 'breath', 'vibratoRate', 'vibratoDepth', 'vibratoDelay', 'articulation', 'attack', 'release', 'level', 'overshoot', 'preparation', 'ring', 'mic', 'tuning', 'nextPhoneme', 'nextIn'].sort(),
     );
-    expect(byName.phoneme).toMatchObject({ min: 0, max: VOCAL_PHONEMES.length - 1, default: 1 });
+    // the phonemes, then the beatbox sounds (engines/vocal-beats.ts)
+    expect(byName.phoneme).toMatchObject({ min: 0, max: VOCAL_SOUND_COUNT - 1, default: 1 });
+    expect(byName.mic).toMatchObject({ min: 0, max: 1, default: 0 });
     expect(byName.bend).toMatchObject({ min: -48, max: 48, default: 0 });
     expect(byName.glide).toMatchObject({ min: 0.005, max: 0.5 });
     expect(byName.body).toMatchObject({ min: 0, max: 2, default: 0 });
