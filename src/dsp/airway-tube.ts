@@ -91,8 +91,7 @@ export class AirwayTube {
   }
 
   /**
-   * Hang a resonator on interior node m, discretized by the trapezoidal rule (junction-airway.ts,
-   * branchCoefficients): 1 / D, the history coefficient M / T - R / 2 - K T / 4, and the stiffness K.
+   * Hang a resonator on interior node m, discretized by the trapezoidal rule (side-branch.ts): 1 / D, the history coefficient M / T - R / 2 - K T / 4, and the stiffness K.
    * Call after configure(); configure() removes every resonator. Off the audio path.
    */
   addResonator(m: number, invD: number, cm: number, K: number): void {

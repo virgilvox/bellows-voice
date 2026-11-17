@@ -4,9 +4,14 @@ State of bellows-voice as of 2026-11-17. Read this first when picking the work b
 
 ## Where things stand
 
-- **Published:** `bellows-voice@0.5.0` on npm, tagged `v0.5.0`, peer-depending on
+- **Published:** `bellows-voice@0.6.0` on npm, tagged `v0.6.0`, peer-depending on
   `bellowsjs >=0.5.0 <0.6.0`. CI (`.github/workflows/ci.yml`): typecheck, the generated plugin, the
   vocal tables and the calibrated vowels all checked current, 522 tests, build.
+- **0.6.0 (2026-11-17):** voice settings and anatomy (one table, `engines/vocal-settings.ts`), the
+  sinuses and piriform fossae (`dsp/side-branch.ts`), breaths between phrases, voiced-stop cavity
+  enlargement and slack cheeks, the whole head to draw (`view/drawing.ts`, `view/head.ts`), handles
+  (`view/handles.ts`) and plain-language helpers (`src/explain.ts`). HOW-IT-WORKS section 11 has the
+  research and measurements; its 11.6 lists what is next (the sublingual cavity first).
 - **0.5.0 (2026-11-17):** speech keeps phrase-final consonants (they were dropped: "hot" said as
   "haw"); General American neutralizes tense vowels before r; the beatbox (`singer.beatbox`, twelve
   sounds, eight presets) and the `mic` param; beats in the tract view. `docs/HOW-IT-WORKS.md` maps the
@@ -62,6 +67,14 @@ gates them.
 6. A new bellowsjs minor (0.6) needs the peer range here widened and a voice release.
 
 ## Traps
+
+- **Side branches must be trapezoidal.** An explicit spring (the walls' scheme) on a 4 kHz branch
+  blew up at 22.05 kHz; `dsp/side-branch.ts` has the passive form. The piriform fossae lower F1 by
+  about dV / V: turning them on moves the vowels off Hillenbrand until the vowels are re-solved.
+- **Settings scales are measured**, not guessed: change one, rerun `anatomy.test.ts`. The jaw must
+  carry the tongue and lower lip, or opening it leaves F1 where it was.
+- **zsh does not word-split** a variable: `for x in "a b"; set -- $x` leaves `$2` empty (a sweep wrote
+  an empty constant into the planner this way).
 
 - **Test what reaches the engine.** The coda bug lived because text-layer tests counted notes and
   checked pitch. Compare spans (`speechPlan` then `planSung`) for anything that changes timing.

@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.6.0
+
+- **Shaping the mouth.** Voice settings after Laver's articulatory settings, as params and through
+  `singer.shape(values | presetId)`: `jawSet`, `lipRound`, `lipOpen`, `tongueFront`, `tongueHigh`,
+  `larynxSet`, `throat`, `twang`, `nasal`, `cheeks`, and anatomy, `size` (formants as 1 / size,
+  MEASURED within 1 to 7 percent) and `pharynx`. Each moves the formants the way acoustic theory says
+  (gated). A setting gives way where a consonant closes. `VOICE_SETTINGS` describes each in plain
+  words and acoustic terms; `SHAPE_PRESETS` has ten shapes.
+- **The throat's cavities.** The maxillary sinuses on the nasal path (Dang and Honda 1996: 2.4 to
+  7.4 dB out of 400 to 1100 Hz on /m/) and the piriform fossae (Dang and Honda 1997: 3 to 7 dB out of
+  4 to 6 kHz), the fossae behind the `piriform` param, off until the vowels are re-solved with them.
+  Branches are trapezoidal, so they stay stable at any rate (`src/dsp/side-branch.ts`).
+- **Breathing.** `speak()` breathes in between phrases: air drawn in through a narrowed glottis,
+  quiet noise with no pitch (`breath: 'between' | 'all' | 'none'`).
+- **Voicing through a closure.** Voiced stops enlarge the cavity behind them (Westbury 1983) and
+  `cheeks` relaxes the oral walls toward Ishizaka et al.'s cheek: /b/ keeps its voice bar 38 dB over
+  /p/'s, 4 dB more with slack cheeks.
+- **The whole head to draw.** `shape().drawing`, `headProfile()`, `mouthHandles()`,
+  `settingsForHandle()` and `formants()` in `bellows-voice/view`.
+- **The voice explained.** `describeSound`, `nearestVowel`, `describeShape`.
+- `docs/HOW-IT-WORKS.md` section 11: the research, mathematics and measurements behind all of it.
+
+
 ## 0.5.0
 
 - **Final consonants in speech.** `speak()` dropped the consonants that end a phrase, so a word said

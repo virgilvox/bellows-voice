@@ -27,3 +27,10 @@ export const ART = {
 } as const;
 
 export const ARTICULATORS = 17;
+
+/** Control keys: the 17 articulators, then the glottis: abduction, closure, fold stiffness (cricothyroid). */
+export const KEY_ABDUCTION = ARTICULATORS;
+export const KEY_CLOSURE = ARTICULATORS + 1;
+export const KEY_STIFFNESS = ARTICULATORS + 2;
+/** The breath: a factor on the note's lung pressure, negative to draw air in (beats only; speech holds 1). */
+export const KEY_BREATH = ARTICULATORS + 3;

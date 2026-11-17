@@ -86,3 +86,38 @@ describe('TractModel: beats', () => {
     expect(m.target('beat:nope')).toBe(false);
   });
 });
+
+describe('TractModel: handles and settings', () => {
+  it('finds the settings that bring a dragged handle to the pointer, and shows the settings', async () => {
+    const { TractModel } = await import('../../src/view/tract');
+    const { mouthHandles, settingsForHandle } = await import('../../src/view/handles');
+    const m = new TractModel(0);
+    m.target('ɑ');
+    m.settle();
+    const before = mouthHandles(m);
+    // the tongue a few millimetres up and forward: within the settings' reach, it lands under the pointer
+    const tg: [number, number] = [before.tongue[0] + 0.3, before.tongue[1] + 0.25];
+    const st = settingsForHandle(m, 'tongue', tg[0], tg[1], 'ɑ');
+    expect(st.tongueFront!).toBeGreaterThan(0);
+    expect(st.tongueHigh!).toBeGreaterThan(0);
+    const got = mouthHandles(m).tongue;
+    expect(Math.hypot(got[0] - tg[0], got[1] - tg[1])).toBeLessThan(0.08);
+    // out of reach, the settings stop at their limits rather than tearing the mouth
+    const far = settingsForHandle(m, 'tongue', before.tongue[0] + 3, before.tongue[1] + 3, 'ɑ');
+    expect(far.tongueFront!).toBeGreaterThan(0.95);
+    expect(far.tongueHigh!).toBeGreaterThan(0.95);
+    const lar = settingsForHandle(m, 'larynx', before.larynx[0], before.larynx[1] - 0.5, 'ɑ');
+    expect(lar.larynxSet!).toBeLessThan(0);
+    // anatomy follows: a bigger head draws a longer tract
+    const small = new TractModel(0);
+    small.setSettings({ size: 0.85 });
+    small.target('ɑ');
+    small.settle();
+    const big = new TractModel(0);
+    big.setSettings({ size: 1.2 });
+    big.target('ɑ');
+    big.settle();
+    const len = (s: { lower: Float32Array }) => s.lower[s.lower.length - 2] - s.lower[0];
+    expect(len(big.shape())).toBeGreaterThan(len(small.shape()) * 1.3);
+  });
+});

@@ -10,7 +10,8 @@
  * Main-thread code: it allocates on construction and in shape(), never per sample.
  */
 
-import { ChimeraGeometry, GEOMETRY_BODIES, geometryDrawing, type GeometryDrawing } from '../engines/vocal-geometry';
+import { ChimeraGeometry, GEOMETRY_BODIES } from '../engines/vocal-geometry';
+import { geometryDrawing, type GeometryDrawing } from './drawing';
 import { settingOffsets, type SettingValues } from '../engines/vocal-settings';
 import { predictFormants } from '../engines/vowel-solver';
 import {
@@ -74,12 +75,9 @@ export interface TractShape {
   split: number;
   /** Index of the narrowest point past the glottis, where the air is fastest (a closure if its area is near 0). */
   constriction: number;
-  /** The anatomy around the air: tongue, lips, teeth, jaw, soft palate, epiglottis (vocal-geometry.ts, drawing()). */
+  /** The anatomy around the air: tongue, lips, teeth, jaw, soft palate, epiglottis (view/drawing.ts). */
   drawing: GeometryDrawing;
 }
-
-/** The parts of the mouth a person can grab and move. */
-export type MouthHandle = 'tongue' | 'tip' | 'jaw' | 'lips' | 'velum' | 'larynx';
 
 /** Settings and anatomy for the model: SettingValues plus size and pharynx (engines/vocal-settings.ts). */
 export interface MouthSettings extends SettingValues {
@@ -176,149 +174,13 @@ export class TractModel {
     return o;
   }
 
-  /**
-   * Move a handle to body point (x, y), cm: the tongue body and tip map straight back to their
-   * articulators; the jaw, lips, soft palate and larynx are found by a short search for the value
-   * that puts the handle there. Snaps the posture.
-   */
-  drag(handle: MouthHandle, x: number, y: number): void {
-    const g = this.geometry;
-    const k = g.k;
-    const ph = this.settingValues.pharynx !== undefined ? GEOMETRY_BODIES[this.bodyIndex].pharynx * clampNum(this.settingValues.pharynx, 0.8, 1.25, 1) : GEOMETRY_BODIES[this.bodyIndex].pharynx;
-    const invX = (bx: number) => {
-      const t = bx / k;
-      return t > 0.5 ? 0.5 + (t - 0.5) / 0.86 : t;
-    };
-    const invY = (by: number) => {
-      const t = by / k;
-      return t < 7 ? 7 - (7 - t) / ph : t;
-    };
-    if (handle === 'tongue') return this.pose({ tbX: invX(x), tbY: invY(y) });
-    if (handle === 'tip') return this.pose({ ttX: invX(x), ttY: invY(y) });
-    const name = handle === 'jaw' ? 'jaw' : handle === 'lips' ? 'lipAp' : handle === 'velum' ? 'velum' : 'larynx';
-    const kk = (VOCAL_ARTICULATOR_NAMES as readonly string[]).indexOf(name);
-    const lo = VOCAL_ARTICULATOR_MIN[kk];
-    const hi = VOCAL_ARTICULATOR_MAX[kk];
-    const where = (v: number): number => {
-      this.posture[kk] = v;
-      const p = handlePoint(this.shapeNow(), handle);
-      return Math.hypot(p[0] - x, p[1] - y);
-    };
-    // golden-section search on the handle's distance to the pointer
-    let a = lo;
-    let b = hi;
-    const r = (Math.sqrt(5) - 1) / 2;
-    let c = b - r * (b - a);
-    let d = a + r * (b - a);
-    let fc = where(c);
-    let fd = where(d);
-    for (let i = 0; i < 28; i++) {
-      if (fc < fd) {
-        b = d;
-        d = c;
-        fd = fc;
-        c = b - r * (b - a);
-        fc = where(c);
-      } else {
-        a = c;
-        c = d;
-        fc = fd;
-        d = a + r * (b - a);
-        fd = where(d);
-      }
-    }
-    const best = (a + b) / 2;
-    if (handle === 'lips') {
-      // the lips' protrusion follows the pointer forward and back
-      const pr = (VOCAL_ARTICULATOR_NAMES as readonly string[]).indexOf('lipProt');
-      const p0 = handlePoint(this.shapeNow(), 'lips');
-      this.pose({ lipAp: best, lipProt: this.posture[pr] + (x - p0[0]) / (0.95 + 1e-9) });
-      return;
-    }
-    this.pose({ [name]: best });
-  }
-
-  /**
-   * The settings that put a handle at body point (x, y), cm, holding sound `ipa`: the handles are the
-   * settings (tongue: tongueFront and tongueHigh; jaw: jawSet; lips: lipRound forward and lipOpen up
-   * and down; velum: nasal; larynx: larynxSet), so a dragged mouth is one the voice can play. A
-   * coordinate-wise golden-section search on the handle's distance to the point. Leaves the model
-   * showing the result.
-   */
-  settingsForHandle(handle: MouthHandle, x: number, y: number, ipa: string): MouthSettings {
-    const PARAMS: Record<MouthHandle, string[]> = {
-      tongue: ['tongueFront', 'tongueHigh'],
-      tip: ['tongueFront', 'tongueHigh'],
-      jaw: ['jawSet'],
-      lips: ['lipRound', 'lipOpen'],
-      velum: ['nasal'],
-      larynx: ['larynxSet'],
-    };
-    const names = PARAMS[handle];
-    const cur: MouthSettings = { ...this.settingValues };
-    const range = (n: string): [number, number] => (n === 'nasal' ? [0, 1] : [-1, 1]);
-    const cost = (): number => {
-      this.setSettings(cur);
-      this.target(ipa);
-      this.settle();
-      const p = handlePoint(this.shapeNow(), handle);
-      return Math.hypot(p[0] - x, p[1] - y);
-    };
-    const r = (Math.sqrt(5) - 1) / 2;
-    for (let round = 0; round < (names.length > 1 ? 3 : 1); round++) {
-      for (const n of names) {
-        let [a, b] = range(n);
-        const at = (v: number) => {
-          (cur as Record<string, number>)[n] = v;
-          return cost();
-        };
-        let c = b - r * (b - a);
-        let d = a + r * (b - a);
-        let fc = at(c);
-        let fd = at(d);
-        for (let i = 0; i < 18; i++) {
-          if (fc < fd) {
-            b = d;
-            d = c;
-            fd = fc;
-            c = b - r * (b - a);
-            fc = at(c);
-          } else {
-            a = c;
-            c = d;
-            fc = fd;
-            d = a + r * (b - a);
-            fd = at(d);
-          }
-        }
-        (cur as Record<string, number>)[n] = Math.round(((a + b) / 2) * 100) / 100;
-      }
-    }
-    this.setSettings(cur);
-    this.target(ipa);
-    this.settle();
-    return cur;
-  }
-
   /** The first three resonances of the current shape, Hz (the vowel solver's tube, walls corrected). */
   formants(): [number, number, number] {
     return predictFormants(this.geometry, this.posture);
   }
 
-  /** Where each handle is now, body cm. */
-  handles(): Record<MouthHandle, [number, number]> {
-    const s = this.shapeNow();
-    return {
-      tongue: handlePoint(s, 'tongue'),
-      tip: handlePoint(s, 'tip'),
-      jaw: handlePoint(s, 'jaw'),
-      lips: handlePoint(s, 'lips'),
-      velum: handlePoint(s, 'velum'),
-      larynx: handlePoint(s, 'larynx'),
-    };
-  }
-
-  private shapeNow(): GeometryDrawing & { tipX: number; tipY: number } {
+  /** The current posture's drawing parts and tongue tip, without the rest of shape(). */
+  drawingNow(): GeometryDrawing & { tipX: number; tipY: number } {
     const g = this.geometry;
     g.evaluate(this.posture);
     return Object.assign(geometryDrawing(g), { tipX: g.tipX, tipY: g.tipY });
@@ -444,24 +306,6 @@ function clampNum(v: number | undefined, lo: number, hi: number, dflt: number): 
 
 function clampPosture(p: Float64Array): void {
   for (let k = 0; k < p.length; k++) p[k] = Math.max(VOCAL_ARTICULATOR_MIN[k], Math.min(VOCAL_ARTICULATOR_MAX[k], p[k]));
-}
-
-/** Where a handle sits on a drawing, body cm. */
-function handlePoint(d: GeometryDrawing & { tipX: number; tipY: number }, h: MouthHandle): [number, number] {
-  if (h === 'tongue') return [d.tongueCenter[0], d.tongueCenter[1]];
-  if (h === 'tip') return [d.tipX, d.tipY];
-  if (h === 'jaw') return [d.lowerTeeth[4], d.lowerTeeth[5]];
-  if (h === 'velum') return [d.velum[10], d.velum[11]];
-  if (h === 'larynx') return [0.5 * (d.inner[0] + d.outer[0]), d.glottisY];
-  // the lips: between the front-most points of the two
-  const front = (pts: number[]): [number, number] => {
-    let bi = 0;
-    for (let i = 2; i < pts.length; i += 2) if (pts[i] > pts[bi]) bi = i;
-    return [pts[bi], pts[bi + 1]];
-  };
-  const u = front(d.upperLip);
-  const l = front(d.lowerLip);
-  return [0.5 * (u[0] + l[0]) + 0.15 * d.k, 0.5 * (u[1] + l[1])];
 }
 
 /** The narrowest point past the first few (the glottis end is narrow by anatomy, not by a constriction). */

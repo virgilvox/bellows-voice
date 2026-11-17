@@ -782,3 +782,153 @@ it is the measurement the later items are judged by. Hours are for one person wh
     overshoot. Gate: budgets hold in CI; a ten second rest costs no more than silence should;
     onsets within 50 cents in the child body. Files: `junction-airway.ts`, `vocal.ts`,
     `src/dsp/pitch-servo.ts`, tests. Cost 6 to 8 h. Risk low.
+
+## 11. The anatomy round (2026-11-17, later)
+
+What a mouth has that the voice lacked, added one piece at a time, each measured before a gate was
+set (`test/engines-physical/anatomy.test.ts`).
+
+### 11.1 Side branches as lumped shunts
+
+A closed side tube of depth L and area A presents, at the junction it opens into, the input impedance
+Z(w) = -j Z0 cot(wL/c), Z0 = rho c / A. Its first zero is the quarter-wave resonance w0 = pi c / 2L,
+where the branch shorts the main tube and the spectrum has a zero. Near w0, cot(x) = -(x - pi/2) +
+O((x - pi/2)^3), so
+
+```
+Z(w) ~ j Z0 (w - w0) L / c
+```
+
+and a series mass and spring, Z = j(wM - K/w) ~ j 2M (w - w0), matches it in value and slope when
+M = Z0 L / (2c) = rho L / (2A) and K = w0^2 M. A Helmholtz resonator is the same element exactly:
+M = rho L_neck / A_neck, K = rho c^2 / V. So both cavities become one shunt branch at one junction,
+solved as the walls are, with lumped values instead of per-area ones.
+
+**The discretization matters (MEASURED).** The walls use an implicit mass and an explicit spring
+(symplectic Euler). For a 40 Hz wall that is harmless; for a 4.2 kHz branch at 22.05 kHz it made the
+coupled system grow without bound, though each half was stable alone. The fix is the trapezoidal
+rule (the bilinear transform), which maps a positive-real impedance to a passive discrete one at any
+rate, so no coupling can make it unstable. With D = M/T + R/2 + KT/4:
+
+```
+q_n = p_n / (2D) + [ p_{n-1}/2 + (M/T - R/2 - KT/4) q_{n-1} - K y_{n-1} ] / D
+y_n = y_{n-1} + T (q_n + q_{n-1}) / 2
+```
+
+a conductance 1/(2D) folded into the junction's Thevenin solve and a history flow. Its frequency
+warping is known, so the resonance is pre-warped: w_set = (2/T) tan(w0 T / 2).
+
+**Piriform fossae** (Dang and Honda 1997, JASA 101: MRI volumes 2.1 to 2.9 cm^3, depths 1.6 to 2.0
+cm, a spectral minimum at 4 to 5 kHz). The pair as one branch, 2.5 k^3 cm^3 and 1.8 k cm, end-corrected
+by 0.61 of each fossa's radius: 4.2 kHz in the male body, at the first even junction above the back
+duct. MEASURED: 3 to 7 dB out of 2.5 to 5.75 kHz on /ɑ/, deepest bands at 4.5 and 5.5 kHz.
+
+**They also lower F1, and that is physics.** Below its resonance the branch is a compliance, an added
+volume dV at the glottis end, where F1's pressure peaks. First-order perturbation of a resonator
+(the energy form behind Fant's sensitivity functions) gives dF/F = -(1/2) dV p^2(x0) / integral of
+p^2 A dx: an added volume at a pressure maximum lowers the frequency by about dV / V of the cavity it
+joins, here 2.5 / 60, about 4 percent. MEASURED: General American's vowels went from 4.6 to 7.4
+percent RMS off Hillenbrand's F1. So the fossae ship as the `piriform` parameter, off by default,
+until the vowels are re-solved with the branch in the solver's tube (a shunt admittance 1/Z(w) at
+the fossae's junction in `tubeResonances`' transfer matrix, which is exact for the tube and cheap).
+
+**Maxillary sinuses** (Dang and Honda 1996, JASA 100: four Helmholtz resonators model the
+sinuses; the maxillary zero lies between 310 and 950 Hz, with large individual differences). The
+pair as one resonator of 30 k^3 cm^3 behind a 0.2 k^2 cm^2, 1 k cm ostium: 455 Hz, on the middle
+node of the nasal tube. MEASURED on /m/: 2.4 to 7.4 dB out of 400 to 1100 Hz. On by default: it sits
+on the nasal path, so oral vowels do not see it.
+
+### 11.2 Breathing in
+
+Speech breathing is a short quick inhalation and a long slow exhalation; an in-breath in a pause is
+noise with no pitch, set between short silences, and louder the faster the breath and the wider the
+jaw (Trouvain et al. 2020; Werner et al. 2021). `speechPlan` now opens each phrase after the first
+with a breath sound (the `in` beat: glottis abducted, lungs below the mouth's pressure, jaw open,
+velum part open) and 50 ms of silence, louder inside speech than before it.
+
+**Why the first try was silent (MEASURED).** With the glottis wide (0.9 cm^2) the lungs at -2.9
+cmH2O drew 330 cm^3/s, a realistic flow, at 76 dB under the vowel. Stevens' law makes noise grow as
+v^3 (about 60 log10 v dB): at a fixed flow U, v = U / A, so the opening, not the flow, sets the
+loudness. At 0.18 cm^2 and half the note's lung pressure (about -5.7 cmH2O) the breath reads -33 dB:
+quiet, and audible. Both values are INFERRED; the gate holds the level between -45 and -20 dB.
+
+### 11.3 Voicing through a voiced closure
+
+Behind a closure, the folds keep vibrating only while the pressure across them stays above
+threshold. The oral pressure rises as
+
+```
+dP/dt = (U_glottis - dV_active/dt) / (C_air + C_walls),   C_air = V / (rho c^2)
+```
+
+so a voice bar lasts longer if the cavity grows (dV_active, Westbury 1983: speakers lower the larynx
+and advance the tongue root during /b d g/) or its walls give (C_walls). Both are in now: voiced stops
+carry a cavity-enlargement gesture (larynx down 0.45, root forward 0.35, INFERRED amounts), and a
+`cheeks` setting blends the oral walls from the tract's (m 1.5, r 2000, k 1e5) toward Ishizaka et
+al.'s relaxed cheek (m 1.5, r 800, k 66 667, as later models reproduce it). MEASURED, late in the
+closure, low band against the vowel: /b/ -24 dB, /p/ -62 dB; slack cheeks raise /b/'s by 4 dB.
+
+### 11.4 Voice settings and anatomy
+
+Laver's articulatory settings (1980) as offsets on the planner's targets, one shared table
+(`engines/vocal-settings.ts`) for the engine, the mouth view and the helpers. A setting gives way where
+a consonant closes:
+
+```
+target_a = planner_a + o_a (1 - h_a),   h_a = max over consonant gestures on a of their ramp
+```
+
+h_a is the planner's own ramp, so the hand-over is as smooth as the gesture. MEASURED effects at 1
+(LPC at 100 Hz): lips rounded on /ɛ/, F1 -9, F2 -4 percent; larynx raised on /ə/, mean of F1 to F3
++4 percent, lowered -5; tongue forward, F2 +14, back -11; jaw open, F1 +9 (once the jaw carries the
+tongue and lower lip with it: opened alone, with the tongue body fixed in the head, F1 did not move);
+tongue high, F1 -6; throat length 1.2, F1 -4, F3 -13; nasal, F1 466 to 558 Hz. Twang moves the 2 to
+4 kHz band only 1.2 dB: the epilarynx narrowing this geometry allows is mild, so the setting is
+described as slight.
+
+**Size.** A tube scaled by s has every resonance at 1/s; with walls, F1^2 = F1_tube^2 / s^2 + F_w^2
+and the wall term does not scale, so F1 moves a little less. MEASURED at s 1.2: F1 0.824, F2 0.776,
+F3 0.819 of the s = 1 values (1/s = 0.833); at 0.85, 1.171, 1.179, 1.171 (1/s = 1.176). The first
+try put F2 at 0.756: the airway's grid had room for the male tract only, so a bigger head pushed its
+extra length into the uniform back duct and bent the area function. The grid now has room for s 1.25.
+
+**Handles.** Dragging the tongue, tip, jaw, lips, velum or larynx sets the settings that put the
+handle under the pointer: a coordinate-wise golden-section search on |handle(settings) - pointer|
+through the geometry, about a hundred evaluations a move. So the mouth a person drags is one the
+engine plays, with consonants still protected.
+
+### 11.5 The view
+
+The mouth view is now CHIMERA's anatomy: the geometry's drawing parts (`geometryDrawing()`: the
+whole tongue, both lips with their outer faces, upper and lower incisors, the jaw bone, the soft
+palate, the epiglottis), and `headProfile()` around them (skin, skull, eye, spine, nasal cavity and
+turbinates, hyoid, thyroid, trachea, folds), ported from CHIMERA's `profile.ts`. On top: the air
+moving at v = U/A, the narrowest place, labels, the handles, and the shape's predicted resonances with
+the hVd word they sound like (`nearestVowel`, Bark distance to Hillenbrand's means).
+
+**Where it lives.** One concept a file: the branch physics in `dsp/side-branch.ts`, the settings
+table in `engines/vocal-settings.ts`, the beat recipes in `engines/vocal-beat-scores.ts` (written
+against a small `BeatWriter` the planner implements, so recipes and machinery are apart), the
+glottal control keys with the articulators', and in the view the drawing parts (`view/drawing.ts`),
+the head (`view/head.ts`) and the handles (`view/handles.ts`) beside `TractModel`. The site's lab is
+split the same way: panels for Shape and Beatbox, the timeline, a mouth composable, and the mouth's
+renderer and air apart from its canvas component.
+
+### 11.6 Next, grounded in the same equations
+
+1. **The sublingual cavity.** When the tip rises, the space under it is a side branch off the front
+   cavity; Espy-Wilson et al. (2000) model it so for American /r/, and it is what holds /r/'s F3 low
+   (Zhang et al. 2005). The geometry already draws its walls (the tongue's underside and the floor of
+   the mouth), so its volume is an integral per frame, V = w * area between `under` and `floor`,
+   and the trapezoidal shunt takes coefficients that change per block. Gate: /ɝ/'s F3 toward
+   Hillenbrand's 1379 to 1719 Hz, the one formant `HANDOFF.md` lists as unsolved, and /ʃ/'s peak.
+2. **Re-solve the vowels with the fossae** (11.1), then turn `piriform` on by default.
+3. **Twang as the epilarynx resonator.** Sundberg's singer's formant comes from an epilarynx tube
+   whose area is under about a sixth of the pharynx's, acting as its own resonator near 3 kHz. Widen
+   the epilarynx's range and gate a 2 to 4 kHz gain of at least 6 dB.
+4. **Two nostrils.** The nasal cavity as two parallel tubes of unequal area (the nasal cycle) puts a
+   pair of nearby zeros in nasal spectra; Dang and Honda also stress left-right asymmetry. Low cost
+   in the AirwayTube.
+5. **Analytic handle Jacobians.** The geometry is smooth; differentiating it once would replace the
+   search with Newton steps, and the same Jacobian chained with the tube's sensitivity functions
+   gives d(formants)/d(settings) for a "make it sound more like X" control.

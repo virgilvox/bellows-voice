@@ -110,6 +110,33 @@ bb.beatbox('B . t . | Pf . t . | B B t . | ^K . t tss', { bpm: 96, swing: 0.1, r
 how the mouth makes it. Any voice can beatbox; the `mic` param (0 to 1) sets how close the microphone
 is, from the far field to a cardioid 2 cm from the lips.
 
+## Shaping the mouth
+
+Every voice has settings anyone can turn: long-term postures laid over every sound, and its size.
+
+```js
+const v = singer(b, 'narrator-female');
+v.shape('operatic');                         // or 'smile', 'pout', 'belt', 'nasal', 'giant', 'tiny' ...
+v.shape({ lipRound: -0.8, larynxSet: 0.2 }); // a smile in the voice
+v.speak('Hello there.');
+```
+
+`VOICE_SETTINGS` lists each one with its name, what its two ends sound like, what it does in plain
+words and in acoustic terms: jaw, lips (smiling to pouting), lip opening, tongue forward and height,
+voice box (lowered to raised), throat (squeezed to open), twang, nasal, cheeks, head size, throat
+length and throat pockets. A consonant still closes whatever the setting. `SHAPE_PRESETS` has ten
+shapes; `describeShape(values)` says one in a sentence.
+
+Speech breathes in between phrases (`speak(text, { breath: 'between' | 'all' | 'none' })`).
+
+## The voice explained
+
+```js
+import { describeSound, nearestVowel } from 'bellows-voice/text';
+describeSound('ʃ');          // 'Made with the front of the tongue just behind the ridge ... As in "ship".'
+nearestVowel(730, 1090, 0);  // { ipa: 'ɔ', word: 'hawed' }: the vowel two resonances sound like
+```
+
 ## Text to IPA, without audio
 
 ```js
@@ -132,6 +159,12 @@ tract.target('i');                        // follow the plan's spans as they pla
 tract.step(1 / 60);                       // articulators move at the engine's speeds
 const { upper, lower, velumPort, lipArea } = tract.shape();   // centimetres, glottis to lips
 ```
+
+`shape().drawing` and `headProfile(drawing)` give the whole head to draw (tongue, lips, teeth, jaw,
+soft palate, epiglottis, skin, skull, nasal cavity, larynx); `setSettings()` shows a voice's settings;
+`mouthHandles(model)` and `settingsForHandle(model, handle, x, y, ipa)` let a person drag the tongue,
+jaw, lips, soft palate or voice box and get the settings that make that mouth; `formants()` gives the
+shape's first three resonances.
 
 `target()` also takes a beat from a beatbox line's spans (`'beat:B'`), with the larynx raised for an
 ejective and the velum down for the hum, and `shape().constriction` is the narrowest point, where the

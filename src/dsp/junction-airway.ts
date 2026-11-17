@@ -100,6 +100,7 @@
 import type { NamedRng } from 'bellowsjs';
 import { AIR_DENSITY, AIR_DYNAMIC_VISCOSITY, CM_H2O, SOUND_SPEED, WALL_CHEEK_RELAXED, WALL_NASAL, WALL_TRACHEA, WALL_TRACT } from './air';
 import { AirwayTube, TUBE_RING, evenNodes } from './airway-tube';
+import { piriformBranch, sinusBranch } from './side-branch';
 import { AreaSlew } from './area-rate';
 import { GlottalSource } from './glottal';
 import { GEO_AMPLITUDE, GeometricGlottis } from './geometric-glottis';
@@ -250,48 +251,7 @@ const OUTPUT_HP = 25;
 const MIC_R = 2;
 /** The microphone's low cut on its flow term, Hz: a slow tongue or jaw pushing air out is not a thump. */
 const MIC_LOW_CUT = 70;
-/*
- * Side branches (docs/HOW-IT-WORKS.md, section 11). A closed tube of depth L and area A, near its
- * first quarter-wave resonance, has the input impedance of a series mass and spring,
- * Z ~ j Z0 (w - w0) L / c, so M = rho L / (2 A) and K = w0^2 M. A Helmholtz resonator is a mass
- * rho L / A on a spring rho c^2 / V. Both are discretized by the trapezoidal rule (the bilinear
- * transform), which maps a passive element to a passive one at any rate: the walls' explicit spring
- * made the 4 kHz branch unstable at 22.05 kHz (MEASURED). Its resonance is pre-warped,
- * w_set = (2 / T) tan(w0 T / 2). With D = M / T + R / 2 + K T / 4 the branch's flow is
- * q_n = p_n / (2 D) + (p_{n-1} / 2 + (M / T - R / 2 - K T / 4) q_{n-1} - K y_{n-1}) / D, its charge
- * y_n = y_{n-1} + T (q_n + q_{n-1}) / 2: a conductance 1 / (2 D) folded into the junction and a history flow.
- *
- * The piriform fossae (Dang and Honda 1997, JASA 101, 456-465): MRI volumes 2.1 to 2.9 cm^3 and
- * depths 1.6 to 2.0 cm, a spectral minimum at 4 to 5 kHz. Here the pair is one branch of 2.5 k^3
- * cm^3 and 1.8 k cm, end-corrected by 0.61 of each fossa's radius: 4.2 kHz in the male body.
- * They open beside the epilarynx, a few cm above the glottis: the first even grid junction above
- * the back duct.
- */
-const PIRIFORM_VOLUME = 2.5;
-const PIRIFORM_DEPTH = 1.8;
-/** The fossae's Q, INFERRED (soft mucosal walls; the measured minima are a few hundred Hz wide). */
-const PIRIFORM_Q = 10;
-/*
- * The maxillary sinuses (Dang and Honda 1996, JASA 100, 3374-3383: four Helmholtz resonators model
- * the sinuses; the maxillary zero was found between 310 and 950 Hz). The pair as one resonator of
- * 30 k^3 cm^3 behind an ostium of 0.2 k^2 cm^2 and 1 k cm effective length: 455 Hz in the male
- * body, on the middle node of the nasal tube (the ostia open into the middle meatus).
- */
-const SINUS_VOLUME = 30;
-const SINUS_NECK_AREA = 0.2;
-const SINUS_NECK_LENGTH = 1;
-/** The sinus's Q, INFERRED. */
-const SINUS_Q = 8;
 
-/** A series mass-spring branch of mass M tuned to f0 at Q, trapezoidal at `rate`: [1 / D, M / T - R / 2 - K T / 4, K]. */
-export function branchCoefficients(M: number, f0: number, q: number, rate: number): [number, number, number] {
-  const w0 = 2 * Math.PI * f0;
-  const wSet = 2 * rate * Math.tan(w0 / (2 * rate));
-  const K = wSet * wSet * M;
-  const R = (w0 * M) / q;
-  const D = M * rate + 0.5 * R + K / (4 * rate);
-  return [1 / D, M * rate - 0.5 * R - K / (4 * rate), K];
-}
 const OUTPUT_LP = 18000;
 /** The moving-wall flow is smoothed by CHIMERA's 60 Hz two-pole (network.rs:360). */
 const DVDT_HZ = 60;
@@ -740,18 +700,11 @@ export class JunctionAirway {
     for (let i = 1; i < nn; i++) if (nodes[i] > nodes[c - 1]) nodes[c++] = nodes[i];
     this.na.configure(sec, nNa, nodes, c, WALL_NASAL, 3.2, 2.5, dx, this.rate);
     if (this.branches) {
-      // the maxillary sinuses on the middle nasal node
-      const sv = SINUS_VOLUME * k2 * k;
-      const sm = (RHO * SINUS_NECK_LENGTH * k) / (SINUS_NECK_AREA * k2);
-      const f0 = Math.sqrt((RHOC * SOUND_SPEED) / sv / sm) / (2 * Math.PI);
-      const bc = branchCoefficients(sm, f0, SINUS_Q, this.rate);
-      this.na.addResonator(c >> 1, bc[0], bc[1], bc[2]);
-      // the piriform fossae at the first even junction above the back duct
-      const pd = PIRIFORM_DEPTH * k;
-      const pa = (PIRIFORM_VOLUME * k2 * k) / pd;
-      const leff = pd + 0.61 * Math.sqrt(pa / 2 / Math.PI);
-      const pm = (RHO * leff) / (2 * pa);
-      const pc = branchCoefficients(pm, SOUND_SPEED / (4 * leff), PIRIFORM_Q, this.rate);
+      // the maxillary sinuses on the middle nasal node, the piriform fossae at the first even junction
+      // above the back duct (dsp/side-branch.ts)
+      const sb = sinusBranch(k, this.rate);
+      this.na.addResonator(c >> 1, sb[0], sb[1], sb[2]);
+      const pc = piriformBranch(k, this.rate);
       this.pJ = 2 < this.nG - 1 && jv !== 2 ? 2 : -1;
       this.pDi = pc[0];
       this.pG = 0.5 * pc[0];

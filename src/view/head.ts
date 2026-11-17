@@ -3,7 +3,7 @@
  * skull and eye, the cervical vertebrae, the nasal cavity and its turbinates, the hard palate's
  * nasal face, the jaw bone's two edges, the hyoid, the thyroid cartilage, the trachea and its rings,
  * and the vocal folds, in body cm with the glottis at the origin (x forward, y up). Built from one
- * frame's drawing (ChimeraGeometry.drawing()), so the jaw, lips and larynx move with the voice.
+ * frame's drawing (view/drawing.ts), so the jaw, lips and larynx move with the voice.
  *
  * Ported from CHIMERA by Jameson Hodge (MIT, https://github.com/jamesondh/chimera-vocal-synth,
  * src/ui/render/profile.ts, buildProfile and its helpers). Changes: points are [x, y] pairs, the
@@ -11,7 +11,7 @@
  * glottis, and the brain's outline is left out. See THIRD_PARTY_NOTICES.md. View code: it allocates.
  */
 
-import type { GeometryDrawing } from '../engines/vocal-geometry';
+import type { GeometryDrawing } from './drawing';
 
 export type Pt = [number, number];
 
