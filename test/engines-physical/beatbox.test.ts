@@ -2,7 +2,8 @@
  * The beatbox sounds made with the airstreams beatboxers use (engines/vocal-beats.ts): an ejective
  * builds its pressure with the glottis shut and no breath from the lungs, an inward snare draws the
  * mouth below the atmosphere, a hum voices at its note, and the close microphone hears the kick's air.
- * Human ejectives reach intraoral pressures of 10 to 25 cmH2O (Kingston 1985; Demolin 2004).
+ * An ejective's pressure comes from the larynx alone and runs above a pulmonic stop's (Ladefoged and
+ * Maddieson 1996, The Sounds of the World's Languages, ch. 3); the bounds here are this voice's gates.
  */
 import { describe, expect, it } from 'vitest';
 import { rng } from 'bellowsjs';

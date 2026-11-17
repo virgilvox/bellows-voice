@@ -20,11 +20,33 @@ import {
   VOCAL_NEUTRAL,
   VOCAL_TABLE_PHONEMES,
 } from '../engines/vocal-tables.gen';
+import { BEAT_PREFIX } from '../engines/vocal-beats';
 import { VOCAL_ACOUSTICS, vocalPhonemeIndex } from '../engines/vocal-phonemes';
 import { ART } from '../engines/vocal-articulators';
 
 /* The velum's target for a nasal: the gesture the planner keys (vocal-planner.ts, M_NASAL). */
 const NASAL_VELUM = 0.45;
+
+/*
+ * A beat drawn as the planner makes it (vocal-planner.ts, beatScore): the consonant it is built on,
+ * held, with the articulators the beat moves past it. An ejective shows its larynx rising, a click
+ * its hollowed dorsum, the hum its lowered velum. '.' is the beatboxer's ready posture.
+ */
+const BEAT_VIEW: Readonly<Record<string, { base: string; set?: Partial<Record<keyof typeof ART, number>> }>> = {
+  '.': { base: 'ə', set: { jaw: 0.4, lipAp: 0.25, lipProt: 0.1 } },
+  B: { base: 'p', set: { jaw: 0.3, tbY: 7.7, larynx: 1.55 } },
+  t: { base: 't', set: { jaw: 0.3 } },
+  tss: { base: 's' },
+  Pf: { base: 'f' },
+  K: { base: 'k', set: { jaw: 0.35, larynx: 1.55 } },
+  '^K': { base: 'k', set: { jaw: 0.35, tbY: 7.4 } },
+  '!': { base: 't', set: { dorsum: 1 } },
+  'P!': { base: 'p', set: { jaw: 1.6, dorsum: 1 } },
+  kch: { base: 'ʃ' },
+  m: { base: 'm' },
+  ch: { base: 'ʃ', set: { jaw: 0.3 } },
+  Psh: { base: 'ʃ' },
+};
 
 /** The articulators, in the order postures use. */
 export const ARTICULATOR_NAMES = VOCAL_ARTICULATOR_NAMES;
@@ -48,6 +70,8 @@ export interface TractShape {
   region: Uint8Array;
   /** Index of the first mouth point, where the pharynx turns into the mouth below the velum (-1 if none). */
   split: number;
+  /** Index of the narrowest point past the glottis, where the air is fastest (a closure if its area is near 0). */
+  constriction: number;
 }
 
 /**
@@ -94,6 +118,7 @@ export class TractModel {
    * vowel's, silence ('_') the rest position. False for a symbol the voice does not have.
    */
   target(ipa: string): boolean {
+    if (ipa.startsWith(BEAT_PREFIX)) return this.targetBeat(ipa);
     if (ipa === '_' || ipa === '') {
       this.goal.set(VOCAL_NEUTRAL);
       this.vowelGoal.set(VOCAL_NEUTRAL);
@@ -116,6 +141,19 @@ export class TractModel {
     // the velum is not in the target tables: the planner lowers it for a nasal, as here
     this.goal[ART.velum] = VOCAL_ACOUSTICS[idx]?.cls === 'nasal' ? NASAL_VELUM : this.vowelGoal[ART.velum];
     this.current = ipa;
+    return true;
+  }
+
+  /** A beat token ("beat:B", "beat:Pf>"): its base consonant with the articulators it moves past it. */
+  private targetBeat(token: string): boolean {
+    let id = token.slice(BEAT_PREFIX.length);
+    if (id.length > 1 && id.endsWith('>')) id = id.slice(0, -1);
+    const view = BEAT_VIEW[id];
+    if (!view) return false;
+    if (!this.target(view.base)) return false;
+    for (const [name, v] of Object.entries(view.set ?? {})) this.goal[ART[name as keyof typeof ART]] = v as number;
+    if (id === 'm') this.goal[ART.velum] = 0.9;
+    this.current = token;
     return true;
   }
 
@@ -168,8 +206,22 @@ export class TractModel {
       tipY: g.tipY,
       region,
       split: g.splitIndex,
+      constriction: narrowest(area),
     };
   }
+}
+
+/** The narrowest point past the first few (the glottis end is narrow by anatomy, not by a constriction). */
+function narrowest(area: Float32Array): number {
+  let best = -1;
+  let min = Infinity;
+  for (let i = Math.min(4, area.length - 1); i < area.length; i++) {
+    if (area[i] < min) {
+      min = area[i];
+      best = i;
+    }
+  }
+  return best;
 }
 
 function clampBody(body: number): number {

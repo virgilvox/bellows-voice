@@ -68,3 +68,21 @@ describe('the tract view', () => {
     expect(len(child)).toBeLessThan(len(male));
   });
 });
+
+describe('TractModel: beats', () => {
+  it('draws an ejective with its larynx raised and lips shut, and the hum with its velum down', async () => {
+    const { TractModel } = await import('../../src/view/tract');
+    const m = new TractModel(0);
+    expect(m.target('beat:.')).toBe(true);
+    m.settle();
+    const restLarynx = m.posture[12];
+    expect(m.target('beat:B>')).toBe(true);
+    m.settle();
+    expect(m.posture[12]).toBeGreaterThan(restLarynx + 1);
+    expect(m.shape().lipArea).toBeLessThan(0.05);
+    m.target('beat:m');
+    m.settle();
+    expect(m.shape().velumPort).toBeGreaterThan(0.1);
+    expect(m.target('beat:nope')).toBe(false);
+  });
+});

@@ -133,7 +133,7 @@ export const GENERAL_AMERICAN: Accent = {
   rhotic: true,
   /*
    * Before an r in its own syllable American English keeps no tense and lax pair apart (pre-rhotic
-   * neutralization: Wells 1982, section 6.1; Kenyon and Knott): "fair" is fɛɹ, not feɪɹ, "board"
+   * neutralization, Wells 1982, Accents of English, vol. 1): "fair" is fɛɹ, not feɪɹ, "board"
    * bɔɹd, "near" nɪɹ, "poor" pʊɹ. The CMU dictionary writes it so; spelling rules read "ai", "oa",
    * "ea" and "oo" as their free vowels, so the sets say it here, for every word.
    */
