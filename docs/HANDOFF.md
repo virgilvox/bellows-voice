@@ -4,9 +4,14 @@ State of bellows-voice as of 2026-11-17. Read this first when picking the work b
 
 ## Where things stand
 
-- **Published:** `bellows-voice@0.4.1` on npm and jsDelivr, tagged `v0.4.1`, peer-depending on
-  `bellowsjs >=0.5.0 <0.6.0`. CI (`.github/workflows/ci.yml`) is green: typecheck, the generated
-  plugin, the vocal tables and the calibrated vowels all checked current, 500-odd tests, build.
+- **Published:** `bellows-voice@0.5.0` on npm, tagged `v0.5.0`, peer-depending on
+  `bellowsjs >=0.5.0 <0.6.0`. CI (`.github/workflows/ci.yml`): typecheck, the generated plugin, the
+  vocal tables and the calibrated vowels all checked current, 522 tests, build.
+- **0.5.0 (2026-11-17):** speech keeps phrase-final consonants (they were dropped: "hot" said as
+  "haw"); General American neutralizes tense vowels before r; the beatbox (`singer.beatbox`, twelve
+  sounds, eight presets) and the `mic` param; beats in the tract view. `docs/HOW-IT-WORKS.md` maps the
+  whole voice with its math and sources, and ends with an independent review and a ranked plan
+  (section 10): start there for what to do next.
 - **Used by:** bellows.live (the bellowsjs monorepo's `apps/workbench`), which loads it as a plugin and
   hosts the voice lab. That repository's `docs/HANDOFF.md` covers the site side.
 - **History:** the voice moved out of bellowsjs at 0.4.0 with its history (git filter-repo).
@@ -57,6 +62,21 @@ gates them.
 6. A new bellowsjs minor (0.6) needs the peer range here widened and a voice release.
 
 ## Traps
+
+- **Test what reaches the engine.** The coda bug lived because text-layer tests counted notes and
+  checked pitch. Compare spans (`speechPlan` then `planSung`) for anything that changes timing.
+- **Beat sounds are `phoneme` indices past the table** (`VOCAL_BEAT_BASE` = 54, two a sound: plain
+  and accented). Anything indexing a per-phoneme table by a `phoneme` value must guard (`isVowel` in
+  sing.ts does). A repeated beat must retrigger: `sungEvents` and the planner's `addNow` exempt beats
+  from the "same sound held" rule.
+- **The planner's breath key** scales lung pressure. Speech never sets it (rest 1); a beat line rests
+  it at 0. It is sampled per articulator step and interpolated per block like the glottis keys; a
+  per-block step makes a 1500 Hz line (the old onset-chirp trap).
+- **Probing the engine directly:** post `nextIn`/`nextPhoneme` after `noteOn`, or the upcoming
+  sound is ignored and every gesture starts late. Run probe tests with `--reporter=verbose`, or
+  vitest drops their console output.
+- **Renders use the generated worklet bundle:** after any engine change, `npm run gen:plugin` before
+  rendering through `b.render()`, or the render runs the old engine.
 
 - **Two copies of bellowsjs** break `singer()` ("no 'vocal' engine" though the plugin loaded): a
   bundler pre-bundling bellows-voice with its own copy (Vite: `optimizeDeps.exclude: ['bellows-voice']`),

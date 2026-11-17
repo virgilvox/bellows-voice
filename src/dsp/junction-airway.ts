@@ -243,8 +243,8 @@ const OUTPUT_HP = 25;
  * The close microphone's distance from the lips at `mic` 1, cm. A pressure-gradient (directional)
  * microphone answers the air's particle velocity, which near a small source carries a term in the
  * flow itself on top of the far field's flow derivative: for a monopole, u = p (1 + 1 / (j k r)) / (rho c),
- * so a cardioid (half pressure, half gradient) at r hears dU/dt + (c / 2r) U. Below c / (2 pi r),
- * 2.8 kHz at 2 cm, the flow term rises over the far field: the proximity effect, and the puff of a
+ * so a cardioid (half pressure, half gradient) at r hears dU/dt + (c / 2r) U. Below c / (4 pi r),
+ * 1.4 kHz at 2 cm, the flow term rises over the far field: the proximity effect, and the puff of a
  * plosive on the diaphragm, which is what makes a beatboxed kick thump on a microphone.
  */
 const MIC_R = 2;
