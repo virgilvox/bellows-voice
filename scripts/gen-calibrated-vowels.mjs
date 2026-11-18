@@ -30,8 +30,18 @@ const HILLENBRAND = {
   'æ': [[588, 1952, 2601], [669, 2349, 2972], [717, 2501, 3289]],
   'ʌ': [[623, 1200, 2550], [753, 1426, 2933], [749, 1546, 3145]],
   'ɛ': [[580, 1799, 2605], [731, 2058, 2979], [749, 2267, 3310]],
+  /* F3 from the released data (vowdata.dat, steady state, "heard"): 1711, 1930, 2154 Hz */
+  'ɝ': [[474, 1379, 1711], [523, 1588, 1930], [586, 1719, 2154]],
 };
+/*
+ * Vowels fitted on F3 as well: the r-coloured vowel, whose low F3 is its identity (CHIMERA's /ɝ/ read F3
+ * 8 to 18 percent high on every body). The rest are fitted on F1 and F2, as before.
+ */
+const F3_VOWELS = new Set(['ɝ']);
 const KEYS = ['tbX', 'tbY', 'jaw', 'lipAp', 'lipProt', 'lipWidth', 'root', 'larynx', 'ttCurl'];
+/* An F3 vowel's row and solve also take the tongue tip, which sets an r-coloured vowel's F3. */
+const TIP_KEYS = ['ttX', 'ttY'];
+const keysFor = (ipa) => (F3_VOWELS.has(ipa) ? [...KEYS, ...TIP_KEYS] : KEYS);
 const BODIES = ['male', 'female', 'child'];
 const F0 = 100;
 /* the norm speaking pitches (src/voices.ts) the shimmer check renders at */
@@ -83,7 +93,7 @@ export { estimateFormants, rng } from 'bellowsjs';`,
     const rows = m.VOCAL_BODIES[b].vowelTargets;
     const idx = m.VOCAL_TABLE_PHONEMES.indexOf(ipa);
     const saved = rows[idx];
-    if (post) rows[idx] = Array.from(m.VOCAL_ARTICULATOR_NAMES, (k, i) => (KEYS.includes(k) ? post[i] : NaN));
+    if (post) rows[idx] = Array.from(m.VOCAL_ARTICULATOR_NAMES, (k, i) => (keysFor(ipa).includes(k) ? post[i] : NaN));
     const sr = 48000;
     const params = {};
     for (const p of m.vocalEngine.params) params[p.name] = p.default;
@@ -98,23 +108,28 @@ export { estimateFormants, rng } from 'bellowsjs';`,
     rows[idx] = saved;
     const f1 = [];
     const f2 = [];
+    const f3 = [];
     for (let t = 0.45; t <= 0.9; t += 0.05) {
       const fm = m.estimateFormants(l, sr, Math.round(t * sr)).filter((f) => f.f > 200 && f.bw < 600);
       if (fm.length >= 2) {
         f1.push(fm[0].f);
         f2.push(fm[1].f);
+        if (fm.length >= 3) f3.push(fm[2].f);
       }
     }
     const med = (a) => [...a].sort((p, q) => p - q)[Math.floor(a.length / 2)];
-    return [med(f1), med(f2)];
+    return F3_VOWELS.has(ipa) ? [med(f1), med(f2), med(f3)] : [med(f1), med(f2)];
   };
-  const err = (meas, t) => Math.hypot(meas[0] / t[0] - 1, meas[1] / t[1] - 1) / Math.SQRT2;
+  const err = (meas, t) =>
+    meas.length > 2
+      ? Math.hypot(meas[0] / t[0] - 1, meas[1] / t[1] - 1, meas[2] / t[2] - 1) / Math.sqrt(3)
+      : Math.hypot(meas[0] / t[0] - 1, meas[1] / t[1] - 1) / Math.SQRT2;
   /* Local shimmer, percent, of the vowel held 3 s at the body's speaking pitch with the default source. */
   const shimmer = (b, ipa, post) => {
     const rows = m.VOCAL_BODIES[b].vowelTargets;
     const idx = m.VOCAL_TABLE_PHONEMES.indexOf(ipa);
     const saved = rows[idx];
-    if (post) rows[idx] = Array.from(m.VOCAL_ARTICULATOR_NAMES, (k, i) => (KEYS.includes(k) ? post[i] : NaN));
+    if (post) rows[idx] = Array.from(m.VOCAL_ARTICULATOR_NAMES, (k, i) => (keysFor(ipa).includes(k) ? post[i] : NaN));
     const sr = 48000;
     const f0 = SPEECH_HZ[b];
     const params = {};
@@ -172,13 +187,18 @@ export { estimateFormants, rng } from 'bellowsjs';`,
       const aim = { f1: t[0], f2: t[1], f3: t[2] };
       const candidates = [];
       for (let round = 0; round < 6; round++) {
-        const fit = m.solveVowel(geos[b], aim, posture(b, ipa));
+        const names = m.VOCAL_ARTICULATOR_NAMES;
+        const free = F3_VOWELS.has(ipa)
+          ? ['jaw', 'tbX', 'tbY', 'root', 'lipAp', 'lipProt', 'ttX', 'ttY', 'ttCurl'].map((k) => names.indexOf(k))
+          : undefined;
+        const fit = m.solveVowel(geos[b], aim, posture(b, ipa), { free, f3Weight: F3_VOWELS.has(ipa) ? 1 : 0.5 });
         const meas = render(b, ipa, fit.posture);
         const e = err(meas, t);
         if (e < beforeErr) candidates.push({ err: e, posture: fit.posture, meas });
         if (e < 0.02) break;
         aim.f1 *= (t[0] / meas[0]) ** 0.7;
         aim.f2 *= (t[1] / meas[1]) ** 0.7;
+        if (meas.length > 2) aim.f3 *= (t[2] / meas[2]) ** 0.7;
       }
       candidates.sort((p, q) => p.err - q.err);
       const shimBefore = shimmer(b, ipa, null);
@@ -193,19 +213,19 @@ export { estimateFormants, rng } from 'bellowsjs';`,
       }
       const kept = best.posture !== null;
       console.log(
-        `${name} ${ipa}: ${Math.round(before[0])}/${Math.round(before[1])} (${(100 * beforeErr).toFixed(1)}%, shimmer ${shimBefore.toFixed(2)}%) -> ` +
-          `${Math.round(best.meas[0])}/${Math.round(best.meas[1])} (${(100 * best.err).toFixed(1)}%, shimmer ${best.shim.toFixed(2)}%) for ${t[0]}/${t[1]}` +
+        `${name} ${ipa}: ${before.map(Math.round).join('/')} (${(100 * beforeErr).toFixed(1)}%, shimmer ${shimBefore.toFixed(2)}%) -> ` +
+          `${best.meas.map(Math.round).join('/')} (${(100 * best.err).toFixed(1)}%, shimmer ${best.shim.toFixed(2)}%) for ${t.slice(0, before.length).join('/')}` +
           (kept ? '' : ', kept CHIMERA\'s'),
       );
       out.measured[name][ipa] = {
-        target: [t[0], t[1]],
+        target: t.slice(0, before.length),
         before: before.map(Math.round),
         after: best.meas.map(Math.round),
         shimmer: [Number(shimBefore.toFixed(2)), Number(best.shim.toFixed(2))],
       };
       if (kept) {
         const row = {};
-        for (const k of KEYS) row[k] = Number(best.posture[m.VOCAL_ARTICULATOR_NAMES.indexOf(k)].toPrecision(6));
+        for (const k of keysFor(ipa)) row[k] = Number(best.posture[m.VOCAL_ARTICULATOR_NAMES.indexOf(k)].toPrecision(6));
         out.vowelTargetsByBody[name][ipa] = row;
       }
     }

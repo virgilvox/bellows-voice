@@ -1341,3 +1341,18 @@ back (dP/dt = (U_g - dV_tissue/dt) / (C_air + C_wall), with dV_tissue no longer 
 it removed the suction but stepped wherever a junction's wall surface neared zero (the drive divides
 by it); doing it in volume terms, with the drive carried by the profile's sections rather than the
 grid's junctions, is the way to try next.
+
+**/ɝ/'s F3, and a branch that did not help.** Hillenbrand et al.'s released data (vowdata.dat, steady
+state, "heard") put /ɝ/'s F3 at 1711, 1930 and 2154 Hz for men, women and children; CHIMERA's /ɝ/ read
+1845, 2123 and 2543 (8 to 18 percent high). The literature's explanation for American /r/'s low F3 is
+the sublingual cavity as a side branch of the front cavity (Espy-Wilson et al. 2000), so that was built
+first: the geometry measures the pocket under the tip (the polygon of the tongue's underside, the floor
+and the lower incisor, by the shoelace formula: 0.4 to 0.8 cm^2 under a resting tip, 1.5 to 2.7 cm^2
+under a raised one, /ɹ/ the largest), and a quarter-wave branch of its volume hung where it opens.
+MEASURED, on every placement and width tried: it lowered /ɝ/'s F2 four to six times as much as its F3
+(male F2 1364 to 1280, F3 1845 to 1829), and F2 was already right. In this geometry the front cavity
+carries F2, not F3, so the branch was not shipped. What did work is solving the vowel for its own F3:
+the calibration (`scripts/gen-calibrated-vowels.mjs`) now fits /ɝ/ on F1, F2 and F3 with the tongue tip
+free (`solveVowel(..., { free, f3Weight })`), as an r-coloured vowel's F3 is the tip's: 1826, 1968 and
+2218 Hz, error 6.6, 8.0 and 13.1 percent down to 5.8, 2.4 and 3.0, shimmer within the half-point rule.
+Gated in voice-norms.test.ts (within 8 percent).

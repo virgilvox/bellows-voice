@@ -4,7 +4,7 @@ State of bellows-voice as of 2026-11-17. Read this first when picking the work b
 
 ## Where things stand
 
-- **Published:** `bellows-voice@0.7.0` on npm, tagged `v0.7.0`, peer-depending on
+- **Published:** `bellows-voice@0.7.1` on npm, tagged `v0.7.1`, peer-depending on
   `bellowsjs >=0.5.0 <0.6.0`. CI (`.github/workflows/ci.yml`): typecheck, the generated plugin, the
   vocal tables and the calibrated vowels all checked current, 522 tests, build.
 - **0.7.0 (2026-11-17):** the pronouncing dictionary (`bellows-voice/dict`, `scripts/gen-dict.mjs`, CI
@@ -51,8 +51,8 @@ gates them.
   `scripts/gen-calibrated-vowels.mjs`, kept only where they measure closer and no rougher; all ten
   General American monophthongs sit within 4.6 percent RMS in F1 and 3.6 in F2 on every body.
 - Open: `/ɑ/` keeps CHIMERA's shape on all three bodies because every closer fit opened the jaw and
-  roughened the voice (find out why: the geometry or the airway at a wide jaw). `/ɝ/`'s F3 is not
-  solved. None of the thirty-one accents has been judged by ear.
+  roughened the voice (find out why: the geometry or the airway at a wide jaw). `/ɝ/` is solved on
+  F1 to F3 with the tip free (0.7.1). None of the thirty-one accents has been judged by ear.
 
 ## Releasing
 

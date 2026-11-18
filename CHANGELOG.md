@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.1
+
+- **The r-coloured vowel's F3**, the one formant left unsolved: /ɝ/ ("heard", "bird") is now fitted to
+  Hillenbrand et al.'s F1, F2 and F3 with the tongue tip free, F3 1826, 1968 and 2218 Hz against
+  1711, 1930 and 2154 (it was 1845, 2123, 2543). Gated within 8 percent on every body.
+- `solveVowel(geometry, target, start, { free, f3Weight })`: choose the articulators a solve may move.
+- A sublingual side branch was built and measured, and left out: in this geometry it moved /ɝ/'s F2,
+  not its F3 (HOW-IT-WORKS 13).
+
+
 ## 0.7.0
 
 - **Every word CMU has, said as CMU says it.** `bellows-voice/dict` (`cmudict()`), the CMU

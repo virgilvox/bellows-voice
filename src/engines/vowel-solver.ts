@@ -27,7 +27,7 @@ const AIR_DENSITY = 0.00114;
 /** The yielding wall's resonance, Hz, added to the rigid tube's F1 in quadrature (MEASURED, see above). */
 export const WALL_HZ = 220;
 /** The articulators the search moves. */
-const FREE = [ART.jaw, ART.tbX, ART.tbY, ART.root, ART.lipAp, ART.lipProt] as const;
+const FREE_DEFAULT = [ART.jaw, ART.tbX, ART.tbY, ART.root, ART.lipAp, ART.lipProt] as const;
 
 /** Target formants, Hz; F3 optional. */
 export interface VowelTarget {
@@ -128,11 +128,22 @@ export function predictFormants(g: ChimeraGeometry, posture: ArrayLike<number>):
   return [Math.sqrt((p[0] ?? NaN) ** 2 + WALL_HZ * WALL_HZ), p[1] ?? NaN, p[2] ?? NaN];
 }
 
+/** What a solve may move and how much F3 counts. */
+export interface SolveOptions {
+  /** Articulator indices free to move; default the jaw, tongue body, root and lips (FREE). */
+  free?: readonly number[];
+  /** F3's weight against F1 and F2's 1 in the Bark cost; default 0.5. */
+  f3Weight?: number;
+}
+
 /**
- * The posture nearest `start` (a full 17-articulator row) whose formants match `target`. Only the jaw,
- * tongue body, root and lips move; everything else keeps start's values.
+ * The posture nearest `start` (a full 17-articulator row) whose formants match `target`. By default only
+ * the jaw, tongue body, root and lips move; everything else keeps start's values. An r-coloured vowel,
+ * whose F3 is set by the tongue tip, frees the tip as well (`opts.free`).
  */
-export function solveVowel(g: ChimeraGeometry, target: VowelTarget, start: ArrayLike<number> = VOCAL_NEUTRAL): VowelFit {
+export function solveVowel(g: ChimeraGeometry, target: VowelTarget, start: ArrayLike<number> = VOCAL_NEUTRAL, opts: SolveOptions = {}): VowelFit {
+  const FREE = opts.free ?? FREE_DEFAULT;
+  const w3 = opts.f3Weight ?? 0.5;
   const base = Float64Array.from(start);
   const lo = FREE.map((k) => VOCAL_ARTICULATOR_MIN[k]);
   const hi = FREE.map((k) => VOCAL_ARTICULATOR_MAX[k]);
@@ -152,7 +163,7 @@ export function solveVowel(g: ChimeraGeometry, target: VowelTarget, start: Array
     const f = predictFormants(g, posture(x));
     if (!(f[0] > 0 && f[1] > 0)) return 1e9;
     c += (bark(f[0]) - bark(target.f1)) ** 2 + (bark(f[1]) - bark(target.f2)) ** 2;
-    if (target.f3 !== undefined && f[2] > 0) c += 0.5 * (bark(f[2]) - bark(target.f3)) ** 2;
+    if (target.f3 !== undefined && f[2] > 0) c += w3 * (bark(f[2]) - bark(target.f3)) ** 2;
     return c;
   };
   const x = nelderMead(cost, FREE.map((k) => base[k]), FREE.map((_, i) => 0.12 * (hi[i] - lo[i])), 600);

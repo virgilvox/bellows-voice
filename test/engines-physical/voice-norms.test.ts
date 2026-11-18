@@ -116,5 +116,20 @@ describe('the voice against human norms', () => {
       expect(Math.sqrt(s1 / n)).toBeLessThan(0.06);
       expect(Math.sqrt(s2 / n)).toBeLessThan(0.06);
     });
+
+    it(`body ${body}: the r-coloured vowel's low F3, within 8 percent of Hillenbrand`, () => {
+      // F3 means from the released data (vowdata.dat, "heard", steady state). CHIMERA's /ɝ/ read 1845, 2123
+      // and 2543 Hz (8 to 18 percent high); solved with the tongue tip free (scripts/gen-calibrated-vowels.mjs),
+      // MEASURED 1826, 1968, 2218
+      const F3 = [1711, 1930, 2154];
+      const x = held('ɝ', body, 100, 1, { roughness: 0 });
+      const f3: number[] = [];
+      for (let t = 0.45; t <= 0.9; t += 0.05) {
+        const fm = estimateFormants(x, SR, Math.round(t * SR)).filter((f) => f.f > 200 && f.bw < 600);
+        if (fm.length >= 3) f3.push(fm[2].f);
+      }
+      const med = [...f3].sort((p, q) => p - q)[Math.floor(f3.length / 2)];
+      expect(Math.abs(med / F3[body] - 1)).toBeLessThan(0.08);
+    });
   }
 });
