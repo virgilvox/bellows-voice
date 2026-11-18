@@ -24,6 +24,57 @@ const UNSTRESSED_VOWEL = 0.09;
 const VOWEL_PAIR = STRESSED_VOWEL + UNSTRESSED_VOWEL;
 const STRESS_RATIO = 2;
 const FINAL_LENGTHENING = 1.5;
+/*
+ * Context factors on a vowel's length, Klatt's (1979) duration rules as MITalk sets them out (Allen,
+ * Hunnicutt and Klatt 1987, ch. 9; CHIMERA ports them in phonetics/durations.rs), laid over the stress
+ * timing above as factors so an accent's stress ratio keeps its meaning:
+ *   - each vowel's inherent length, Klatt's INH over the General American monophthongs' mean (180 ms):
+ *     /ɑ/ 240, /ɪ/ 135, /aɪ/ 250;
+ *   - the consonant after it in the same word, English's main cue to final voicing (Peterson and
+ *     Lehiste 1960): before a voiced fricative 1.6, a voiced stop 1.2, a nasal 0.85, a voiceless stop
+ *     0.7; at a phrase's end in full, elsewhere 0.7 + 0.3 f;
+ *   - a syllable that does not end its word 0.85, and any syllable of a longer word 0.8.
+ */
+const INHERENT: Readonly<Record<string, number>> = {
+  i: 155, ɪ: 135, e: 190, eɪ: 190, ɛ: 150, æ: 230, a: 230, ɑ: 240, ɒ: 240, ɔ: 240, o: 220, oʊ: 220, ʊ: 160,
+  u: 210, ʌ: 140, ə: 120, ɚ: 180, ɝ: 180, aɪ: 250, aʊ: 240, ɔɪ: 280, ɨ: 110,
+};
+const INHERENT_MEAN = 180;
+const VOICED_FRICATIVES = new Set(['v', 'ð', 'z', 'ʒ']);
+const VOICED_STOPS = new Set(['b', 'd', 'g', 'dʒ']);
+const VOICELESS_STOPS = new Set(['p', 't', 'k', 'tʃ', 'ʔ']);
+const NASALS = new Set(['m', 'n', 'ŋ']);
+
+/** Klatt's factor on vowel time for the consonant after it, before it is weakened away from a phrase's end. */
+function postvocalic(ipa: string | undefined): number {
+  if (ipa === undefined) return 1;
+  if (VOICED_FRICATIVES.has(ipa)) return 1.6;
+  if (VOICED_STOPS.has(ipa)) return 1.2;
+  if (VOICELESS_STOPS.has(ipa)) return 0.7;
+  if (NASALS.has(ipa)) return 0.85;
+  return 1;
+}
+
+/** The context factor on syllable k's vowel in a phrase (see above). */
+function klattFactor(span: readonly Syllable[], k: number, last: boolean): number {
+  const syl = span[k];
+  const v = syl.nucleus.ipa;
+  const inh = INHERENT[v] ?? INHERENT[Array.from(v)[0]] ?? INHERENT_MEAN;
+  let f = Math.max(0.65, Math.min(1.45, inh / INHERENT_MEAN));
+  // the word this syllable is in: back to the previous word's end, on to its own
+  let a = k;
+  while (a > 0 && !span[a - 1].wordEnd) a--;
+  let b = k;
+  while (b < span.length - 1 && !span[b].wordEnd) b++;
+  if (b > a) f *= 0.8;
+  if (!syl.wordEnd && k < b) f *= 0.85;
+  // the next consonant in the same word: this syllable's coda, or the next syllable's onset
+  const next = syl.coda[0]?.ipa ?? (k < b ? span[k + 1].onset[0]?.ipa : undefined);
+  const c = postvocalic(next);
+  f *= last ? c : 0.7 + 0.3 * c;
+  return f;
+}
+
 /** The pause after a phrase, s. */
 const PHRASE_PAUSE = 0.28;
 /**
@@ -103,7 +154,7 @@ export function speechPlan(
       const syl = span[k];
       const last = k === span.length - 1;
       const stressed = syl.nucleus.stress !== undefined && syl.nucleus.stress > 0;
-      let vowel = syl.nucleus.dur ?? (stressed ? stressedVowel : unstressedVowel);
+      let vowel = syl.nucleus.dur ?? (stressed ? stressedVowel : unstressedVowel) * klattFactor(span, k, last);
       if (last) vowel *= FINAL_LENGTHENING;
       let consonants = 0;
       for (const c of syl.coda) consonants += c.dur ?? consonantDuration(c.ipa);

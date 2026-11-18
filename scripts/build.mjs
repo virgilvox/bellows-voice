@@ -12,7 +12,7 @@ import { BANNER } from './banner.mjs';
 const pkg = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 await build({
-  entryPoints: [join(pkg, 'src/index.ts'), join(pkg, 'src/text.ts'), join(pkg, 'src/engine.ts'), join(pkg, 'src/view.ts')],
+  entryPoints: [join(pkg, 'src/index.ts'), join(pkg, 'src/text.ts'), join(pkg, 'src/engine.ts'), join(pkg, 'src/view.ts'), join(pkg, 'src/dict.ts')],
   outdir: join(pkg, 'dist'),
   bundle: true,
   splitting: true,
@@ -25,4 +25,4 @@ await build({
   banner: { js: BANNER },
   logLevel: 'error',
 });
-console.log('dist/index.js, text.js, engine.js and view.js written');
+console.log('dist/index.js, text.js, engine.js, view.js and dict.js written');

@@ -31,6 +31,8 @@ jobs:
         run: node scripts/gen-vocal-tract.mjs --check
       - name: calibrated vowels reproduce from CHIMERA's rows and Hillenbrand's means
         run: node scripts/gen-calibrated-vowels.mjs --check
+      - name: the pronouncing dictionary reproduces from CMU's
+        run: node scripts/gen-dict.mjs --check
       - name: test
         run: npm test
       - name: build

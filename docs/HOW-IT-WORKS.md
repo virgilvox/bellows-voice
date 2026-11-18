@@ -1300,3 +1300,44 @@ the code.
 9. **From CHIMERA, in this order:** numbers spelled out, a telemetry snapshot (10.3 M) with a
    stroboscope and spectrogram on it, the four IPA marks, a true seal at a closure.
 10. **Idea G, then idea H** if a source for the 3D figures is found.
+
+## 13. Words said right (2026-11-17, latest)
+
+The top of the plan in sections 10 and 12: pronunciation first, then the cues that tell a voiced final
+consonant from a voiceless one.
+
+**A dictionary that holds only the reader's mistakes.** `scripts/gen-dict.mjs` runs every word of
+the CMU Pronouncing Dictionary (124 101 a reader can look up: no edge apostrophes, which the reader strips
+first) through the English reader with no dictionary, and keeps a word only where the reader's sounds or
+stress differ from CMU's. 81.0 percent do, mostly rare words and names, so the residual saves less than
+hoped, but the encoding does the rest: one character a phone (69 ARPAbet phones with stress), the sorted
+words front-coded. 1414 KB raw, 586 KB gzipped, against the 869 KB CHIMERA loads at start-up, and it
+is its own entry (`bellows-voice/dict`), so a page that does not want it never loads it. CHECKED:
+with it, the reader says every one of the 124 101 words exactly as CMU does, but for six homographs the
+reader chooses on purpose ("read", "live", "lead", "close", "wind", "wound"). "Harvard" is ˈhɑɹ.vɚd.
+
+**Numbers, symbols and letters** (`lyrics/numbers.ts`, on by default): cardinals, ordinals, years as
+they are read (1984 nineteen eighty four, 2005 two thousand five, 2026 twenty twenty six), decimals,
+money, percentages, times (10:05 ten oh five), "&", and initialisms as letter names in IPA, the last
+letter stressed (TV /ti.ˈvi/; capitals without a vowel letter, or a short list: USA, CEO, DIY ...).
+
+**Vowel length carries the final consonant.** Klatt's (1979) duration rules, as MITalk sets them out
+and CHIMERA ports them, laid over the stress timing as factors so an accent's stress ratio keeps its
+meaning: each vowel's inherent length (INH / 180 ms), the next consonant in the word (before a voiced
+fricative 1.6, a voiced stop 1.2, a nasal 0.85, a voiceless stop 0.7; in full at a phrase's end, 0.7 +
+0.3 f elsewhere), 0.85 for a syllable that does not end its word and 0.8 in a longer word. Gated: bead,
+bad, trade, his and rib each over 1.4 times beat, bat, trait, hiss and rip (Peterson and Lehiste 1960
+measured about 1.5 for English); pot over 1.3 times pit.
+
+**The click after "Harvard", and what it taught** (0.6.2). The articulators move on a schedule and
+the tissue's motion enters the airway as an ideal flow source (-dV/dt). Inside a voiced closure, the
+tongue moving toward the next sound grew the cavity faster than the vibrating folds let air in, and
+the mouth fell to -9.7 cmH2O: an implosive by accident, a click at the release. The fix in force is
+physiological: a voiced stop parts the glottis slightly (0.02 cm^2, as English /b d g/ often partly
+devoice), which lets air in and costs, by Ohala's aerodynamic voicing constraint, some voicing late in
+a long closure. The fix in principle is tissue that yields: the anatomy should move each wall's rest
+position, the wall following through its own mass, damping and spring, so suction holds the tissue
+back (dP/dt = (U_g - dV_tissue/dt) / (C_air + C_wall), with dV_tissue no longer prescribed). Tried,
+it removed the suction but stepped wherever a junction's wall surface neared zero (the drive divides
+by it); doing it in volume terms, with the drive carried by the profile's sections rather than the
+grid's junctions, is the way to try next.

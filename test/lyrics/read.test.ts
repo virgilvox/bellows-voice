@@ -87,8 +87,9 @@ describe('lyricsToSyllables, the conventions', () => {
     expect(sing('don’t stop')).toEqual(sing("don't stop"));
   });
 
-  it('skips digits, symbols and scripts no front end reads', () => {
-    expect(shownText(sing('123 star 4 you'))).toBe('star you ');
+  it('skips digits, symbols and scripts no front end reads (with numbers off; on, they are said)', () => {
+    expect(shownText(lyricsToSyllables('123 star 4 you', { numbers: false }))).toBe('star you ');
+    expect(shownText(lyricsToSyllables('4 you'))).toBe('four you ');
     expect(shownText(sing('日本 star \u{1F600} # % @ you'))).toBe('star you ');
   });
 
@@ -119,7 +120,7 @@ describe('lyricsToSyllables, the conventions', () => {
       ['la la la - - la', 'la la la ~~ ~~ la ', 'lɑ lɑ lɑ ɑ ɑ lɑ'], // upstream: læ læ læ æ æ læ
     ];
     for (const [text, shown, sung] of CASES) {
-      const syls = lyricsToSyllables(text);
+      const syls = lyricsToSyllables(text, { numbers: false });
       expect(shownText(syls), text).toBe(shown);
       expect(sungIpa(syls), text).toBe(sung);
     }
@@ -128,7 +129,7 @@ describe('lyricsToSyllables, the conventions', () => {
   it('gives an empty lyric for text with nothing to sing, and never throws', () => {
     for (const t of ['', ' ', '...', '?!;:,.', '\n\n', '-', '~', '--', '123', '日本語', '\u{1F600}\u{1F600}',
       '/', '//', '/ /', '\uD800', '\u0301', "'", '- ~ - ~']) {
-      expect(lyricsToSyllables(t), JSON.stringify(t)).toEqual([]);
+      expect(lyricsToSyllables(t, { numbers: false }), JSON.stringify(t)).toEqual([]);
     }
   });
 
@@ -195,7 +196,7 @@ describe('IPA between slashes', () => {
     expect(shownText(lyricsToSyllables('rock and/or roll'))).toBe(
       shownText(lyricsToSyllables('rock and or roll')),
     );
-    expect(shownText(lyricsToSyllables('in 3/4 time'))).toBe('in time ');
+    expect(shownText(lyricsToSyllables('in 3/4 time', { numbers: false }))).toBe('in time ');
     /* A slash pair must hug its word, and close on the same line. */
     expect(shownText(lyricsToSyllables('/ star /'))).toBe('star ');
     expect(shownText(lyricsToSyllables('/star\nstar/'))).toBe('star /star ');

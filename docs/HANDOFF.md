@@ -4,9 +4,11 @@ State of bellows-voice as of 2026-11-17. Read this first when picking the work b
 
 ## Where things stand
 
-- **Published:** `bellows-voice@0.6.2` on npm, tagged `v0.6.2`, peer-depending on
+- **Published:** `bellows-voice@0.7.0` on npm, tagged `v0.7.0`, peer-depending on
   `bellowsjs >=0.5.0 <0.6.0`. CI (`.github/workflows/ci.yml`): typecheck, the generated plugin, the
   vocal tables and the calibrated vowels all checked current, 522 tests, build.
+- **0.7.0 (2026-11-17):** the pronouncing dictionary (`bellows-voice/dict`, `scripts/gen-dict.mjs`, CI
+  checks it), numbers as words (`lyrics/numbers.ts`), Klatt vowel lengths in speech. HOW-IT-WORKS 13.
 - **0.6.0 (2026-11-17):** voice settings and anatomy (one table, `engines/vocal-settings.ts`), the
   sinuses and piriform fossae (`dsp/side-branch.ts`), breaths between phrases, voiced-stop cavity
   enlargement and slack cheeks, the whole head to draw (`view/drawing.ts`, `view/head.ts`), handles

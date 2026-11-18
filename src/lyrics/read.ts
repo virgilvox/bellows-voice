@@ -33,6 +33,7 @@ import { englishFrontEnd } from './english';
 import { ipaFrontEnd } from './ipa-front-end';
 import { applyAllophones } from './allophones';
 import { applyAccent, resolveAccent, type Accent } from './accents';
+import { spellOut } from './numbers';
 
 const SPACE = /\s/;
 /** A word character in any script: a delimited word may not open right after one. */
@@ -104,8 +105,11 @@ export function lyricsToSyllables(
     accent?: Accent | string;
     /** Weak forms of function words ("the" ðə, "and" ənd), as speech has them; off for singing. */
     reduce?: boolean;
+    /** Numbers, symbols and initialisms as words ("21st", "$5", "TV"; numbers.ts), default true. */
+    numbers?: boolean;
   } = {},
 ): Syllable[] {
+  if (opts.numbers !== false) text = spellOut(text);
   const english = englishFrontEnd({ dictionary: opts.dictionary, reduce: opts.reduce });
   const read = new WeakSet<Syllable>();
   const tagged: FrontEnd = {

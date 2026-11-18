@@ -268,3 +268,20 @@ describe('speech', () => {
     expect(plan.syllables[plan.syllables.length - 1].melisma).toBe(true);
   });
 });
+
+describe('speech: vowel length carries the final consonant (Klatt 1979; Peterson and Lehiste 1960)', () => {
+  /** The vowel's time in a spoken word alone (its notes, less its consonants' spoken length). */
+  const vowelOf = (word: string): number => {
+    const sp = speechPlan(lyricsToSyllables(word), { breath: 'none' });
+    const plan = planSung(sp.notes.filter((n) => !n.rest), sp.syllables, { consonantScale: 1 });
+    return plan.phrases[0].spans.filter((s) => s.kind === 'nucleus').reduce((a, s) => a + s.end - s.start, 0);
+  };
+  it('lengthens a vowel before a voiced consonant, shortens it before a voiceless one', () => {
+    for (const [voiced, voiceless] of [['bead', 'beat'], ['bad', 'bat'], ['trade', 'trait'], ['his', 'hiss'], ['rib', 'rip']]) {
+      expect(vowelOf(voiced) / vowelOf(voiceless), `${voiced}/${voiceless}`).toBeGreaterThan(1.4);
+    }
+  });
+  it('gives each vowel its own length: a long /ɑ/, a short /ɪ/', () => {
+    expect(vowelOf('pot') / vowelOf('pit')).toBeGreaterThan(1.3);
+  });
+});

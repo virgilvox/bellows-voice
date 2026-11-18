@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.0
+
+- **Every word CMU has, said as CMU says it.** `bellows-voice/dict` (`cmudict()`), the CMU
+  Pronouncing Dictionary as a residual of the English reader's mistakes: with it the reader says all
+  124 101 lookup-able words exactly as CMU does (homographs aside), 586 KB gzipped, loaded only by pages
+  that import it. "Harvard" is ˈhɑɹ.vɚd. `singer(b, voice, { dictionary: cmudict() })`.
+- **Numbers, symbols and initialisms as words**, on by default (`numbers: false` turns it off):
+  "21st", "$5.50", "10:05", "50%", "1984", "TV". `spellOut`, `cardinal`, `ordinal`, `year`, `letters`.
+- **Vowel length carries the final consonant in speech** (Klatt 1979): "bead" over 1.4 times "beat",
+  and each vowel its own inherent length.
+- `docs/HOW-IT-WORKS.md` section 13.
+
+
 ## 0.6.2
 
 - **No click after "Harvard" in "Harvard Yard".** A tongue moving toward /j/ during the /d/ closure

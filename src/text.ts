@@ -81,6 +81,7 @@ export { VOCAL_BEATS, vocalBeatIndex, type VocalBeat, type BeatRole, type Airstr
 /* the mouth's settings and shapes, and the voice explained in plain words */
 export { VOICE_SETTINGS, SHAPE_PRESETS, voiceSetting, type VoiceSetting, type ShapePreset, type SettingValues } from './engines/vocal-settings';
 export { describeSound, nearestVowel, describeShape } from './explain';
+export { spellOut, cardinal, ordinal, year, letters } from './lyrics/numbers';
 
 /* starter voices are data too: what a UI lists, with no audio */
 export { VOICE_PRESETS, SPEECH_HZ_BY_BODY, voicePreset, speechHzForBody, type VoicePreset, type VoiceGroup } from './voices';

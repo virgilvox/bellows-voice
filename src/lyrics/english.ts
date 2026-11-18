@@ -51,7 +51,7 @@ const HOMOGRAPHS: ReadonlyMap<string, string> = new Map([
 
 /*
  * Upstream's function words, with a pronunciation each. They are the commonest words of any
- * lyric, and spelling predicts them worst: without a dictionary, which bellows does not ship,
+ * lyric, and spelling predicts them worst: without a dictionary (bellows-voice/dict ships one, apart),
  * the rules read 32 of these 66 wrongly, "the" as θi, "I" as ɪ, "you" as jaʊ, "to" as tɑ
  * (MEASURED). These are the usual readings, written out by hand, and each one agrees with the
  * first entry of the cmudict.dict copy CHIMERA ships (checked as data, 66 of 66), so a lyric

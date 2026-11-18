@@ -183,7 +183,16 @@ registerVoice();
 
 ## Pronunciations
 
-Words go through English letter-to-sound rules unless you give a pronouncing dictionary: `alto.dictionary = parseCmudict(text)` with your own copy of CMUdict (none ships). IPA between slashes, `/ˈlɪt.əl/`, sets the sounds directly.
+Words go through English letter-to-sound rules (about 77 percent of common words exact) unless you give
+a pronouncing dictionary. One ships as its own entry, loaded only if you import it (about 590 KB gzipped):
+
+```js
+import { cmudict } from 'bellows-voice/dict';
+const v = singer(b, 'narrator-female', { dictionary: cmudict() });   // every CMU word as CMU says it
+```
+
+Numbers, symbols and initialisms are said as words ("21st", "$5", "10:05", "TV"). IPA between slashes,
+`/ˈlɪt.əl/`, sets the sounds directly.
 
 ## Content-Security-Policy
 
