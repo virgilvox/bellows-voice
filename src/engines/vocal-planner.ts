@@ -103,7 +103,7 @@ const M_APPROXIMANT = 6;
 const M_LATERAL = 7;
 const M_TAP = 8;
 const M_GLOTTAL = 9;
-/** A beatbox sound (engines/vocal-beats.ts): its gestures come from beat(), not from the tables. */
+/** A beatbox sound (engines/vocal-beats.ts): its gestures come from writeBeatScore (vocal-beat-scores.ts), not from the tables. */
 const M_BEAT = 10;
 const MANNER_CODE: Record<string, number> = {
   silence: M_SILENCE,
@@ -264,7 +264,6 @@ export class VocalPlanner {
    * of any consonant gesture on it): a voice setting (vocal.ts) gives way where a consonant closes.
    */
   readonly held = new Float64Array(ARTICULATORS);
-  /** The dorsum's height for [x] at this body. */
   /** The dorsum's height for [x] at this body (the beat scores' velar fricative). */
   xTbY = X_TBY[0];
   /** Scratch: a consonant's targets with a beat's overrides. */

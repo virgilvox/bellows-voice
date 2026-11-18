@@ -40,6 +40,8 @@ export interface VoiceSetting {
   neutral?: number;
   /** What it describes, for a sentence ("tongue", "voice box"). */
   subject: string;
+  /** The ends said strongly, where "very" does not fit ("pushed far forward"); left out, the helpers build them. */
+  strong?: [low: string, high: string];
 }
 
 export const VOICE_SETTINGS: readonly VoiceSetting[] = [
@@ -54,17 +56,17 @@ export const VOICE_SETTINGS: readonly VoiceSetting[] = [
     acoustics: 'Lengthens the back cavity: lowers F1 and pulls F2 down in front vowels.',
   },
   {
-    subject: 'throat pockets', param: 'piriform', name: 'Throat pockets', low: 'off', high: 'on', min: 0, max: 1, anatomy: true,
+    subject: 'throat pockets', param: 'piriform', name: 'Throat pockets', low: 'off', high: 'on', min: 0, max: 1, anatomy: true, strong: ['off', 'on'],
     plain: 'Two small pockets beside the voice box that every throat has. On, the voice loses a little of its hard top edge.',
     acoustics: 'The piriform fossae as a side branch: a dip at 4 to 6 kHz (Dang and Honda 1997). Off by default until the vowels are re-solved with them, since they also lower F1.',
   },
   {
-    subject: 'jaw', param: 'jawSet', name: 'Jaw', low: 'held close', high: 'hanging open', min: -1, max: 1,
+    subject: 'jaw', param: 'jawSet', name: 'Jaw', low: 'held close', high: 'hanging open', min: -1, max: 1, strong: ['clenched', 'hanging wide open'],
     plain: 'How far the jaw hangs open over everything. Open sounds loud and open; close sounds tight and mumbled.',
     acoustics: 'Opening widens the front of the mouth: raises F1 in every vowel.',
   },
   {
-    subject: 'tongue', param: 'tongueFront', name: 'Tongue forward', low: 'pulled back', high: 'pushed forward', min: -1, max: 1,
+    subject: 'tongue', param: 'tongueFront', name: 'Tongue forward', low: 'pulled back', high: 'pushed forward', min: -1, max: 1, strong: ['pulled far back', 'pushed far forward'],
     plain: 'Where the tongue rests. Forward sounds bright and young; back sounds dark, as if swallowed.',
     acoustics: 'Fronting raises F2; backing lowers it (a velarized setting).',
   },
@@ -79,7 +81,7 @@ export const VOICE_SETTINGS: readonly VoiceSetting[] = [
     acoustics: 'Rounding and protruding lengthen the tube and narrow its end, so the formants fall (MEASURED on /ɛ/ at 1: F1 -9, F2 -4, F3 -1 percent). Spreading does the opposite, less.',
   },
   {
-    subject: 'lips', param: 'lipOpen', name: 'Lip opening', low: 'nearly closed', high: 'wide', min: -1, max: 1,
+    subject: 'lips', param: 'lipOpen', name: 'Lip opening', low: 'nearly closed', high: 'wide', min: -1, max: 1, strong: ['almost shut', 'very wide'],
     plain: 'How far apart the lips stay. Nearly closed sounds muffled, as when talking through a smile you are hiding.',
     acoustics: 'A narrower lip opening lowers every formant and the level of the highs.',
   },
@@ -89,14 +91,14 @@ export const VOICE_SETTINGS: readonly VoiceSetting[] = [
     acoustics: 'Moving the larynx changes the tube\'s length: raising it shortens the tract and lifts every formant.',
   },
   {
-    subject: 'voice', param: 'nasal', name: 'Nasal', low: 'clear', high: 'through the nose', min: 0, max: 1,
+    subject: 'voice', param: 'nasal', name: 'Nasal', low: 'clear', high: 'through the nose', min: 0, max: 1, strong: ['clear', 'right through the nose'],
     plain: 'Lets sound leak through the nose, as with a blocked-up or whiny voice.',
     acoustics: 'Lowers the velum: the nasal branch adds anti-resonances and raises and widens F1 (MEASURED: /ə/ F1 466 to 558 Hz at 1).',
   },
   {
-    subject: 'twang', param: 'twang', name: 'Twang', low: 'none', high: 'brassy', min: 0, max: 1,
-    plain: 'A brassy, cutting edge, the sound of a belt or a country singer, that carries without shouting.',
-    acoustics: 'Narrows the tube just above the folds (the epilarynx), boosting energy near 2 to 4 kHz (Yanagisawa et al. 1989).',
+    subject: 'twang', param: 'twang', name: 'Twang', low: 'none', high: 'brassy', min: 0, max: 1, strong: ['none', 'very brassy'],
+    plain: 'A slight brassy edge, toward a belt or a country singer.',
+    acoustics: 'Narrows the tube just above the folds (the epilarynx), toward more energy near 2 to 4 kHz (Yanagisawa et al. 1989); in this geometry only about 1 dB (MEASURED), since the epilarynx is not yet a resonator of its own.',
   },
   {
     subject: 'throat', param: 'throat', name: 'Throat', low: 'squeezed', high: 'open', min: -1, max: 1,
@@ -109,6 +111,11 @@ export const VOICE_SETTINGS: readonly VoiceSetting[] = [
     acoustics: 'Softens the oral walls toward Ishizaka et al.\'s (1975) relaxed cheek: more compliance behind a closure, a longer voice bar.',
   },
 ];
+
+/** A setting's value, 0 when missing or not finite. */
+function v(x: number | undefined): number {
+  return typeof x === 'number' && Number.isFinite(x) ? x : 0;
+}
 
 /** A setting by param name. */
 export function voiceSetting(param: string): VoiceSetting | undefined {
@@ -134,7 +141,6 @@ export interface SettingValues {
  * acoustic theory gives (test/engines-physical/anatomy.test.ts).
  */
 export function settingOffsets(st: SettingValues, out: Float64Array): void {
-  const v = (x: number | undefined) => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
   out.fill(0);
   if (out.length < ARTICULATORS) return;
   // the jaw carries the tongue and the lower lip with it (as the formant tuning in vocal.ts does):

@@ -243,3 +243,42 @@ describe('the lungs\' end (two rates, off by default until the noise gains are r
     expect(psub(true)).toBeGreaterThan(6.5);
   });
 });
+
+describe('the piriform branch and the velum junction', () => {
+  it('keeps the pressure behind a closure when the velum junction moves onto the branch\'s junction (22050 Hz)', async () => {
+    const { JunctionAirway } = await import('../../src/dsp/junction-airway');
+    const run = (split: number, piriform: number) => {
+      const rate = 22050;
+      const n = 16;
+      const a = new JunctionAirway(rate, n, rng('leak')) as unknown as Record<string, any>;
+      a.configure(1, n, 8);
+      a.piriform = piriform;
+      a.gridIn.fill(3);
+      a.gridMin.fill(3);
+      a.vflow.fill(0);
+      Object.assign(a, { ductLen: 2, ductArea: 3, velum: 0, pLung: 8 * CM_H2O, agStatic: 0.3, f0: 110, teethX: n - 2, splitI: split, gain: 1 });
+      const blocks = Math.round((0.6 * rate) / a.block);
+      const out = new Float32Array(blocks * a.block);
+      const r = new Float32Array(out.length);
+      const env = new Float32Array(a.block).fill(1);
+      let ps = 0;
+      let c = 0;
+      for (let b = 0; b < blocks; b++) {
+        if (b === Math.round(blocks / 3)) {
+          a.gridIn[5] = 1e-6;
+          a.gridMin[5] = 1e-6;
+        }
+        a.beginBlock();
+        a.render(out, r, b * a.block, a.block, 0, env);
+        if (b > blocks * 0.8) {
+          ps += a.pSupra / CM_H2O;
+          c++;
+        }
+      }
+      return ps / c;
+    };
+    // MEASURED before the fix: 8.00 off, 6.91 on (the branch a bare leak while jv sat on it)
+    expect(Math.abs(run(3.5, 1) - run(3.5, 0))).toBeLessThan(0.1);
+    expect(Math.abs(run(8.5, 1) - run(8.5, 0))).toBeLessThan(0.1);
+  });
+});

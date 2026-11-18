@@ -14,6 +14,7 @@
  */
 
 import type { Syllable, SungNote } from './types';
+import type { LexicalSet } from './lexical-sets';
 import type { Prosody } from './accents';
 import { DEFAULT_PROSODY } from './accents';
 import { consonantDuration } from './durations';
@@ -40,6 +41,14 @@ const INHERENT: Readonly<Record<string, number>> = {
   u: 210, ʌ: 140, ə: 120, ɚ: 180, ɝ: 180, aɪ: 250, aʊ: 240, ɔɪ: 280, ɨ: 110,
 };
 const INHERENT_MEAN = 180;
+/* A lexical set's General American vowel, so an accent's vowel ("əʊ" for GOAT) keeps its set's length. */
+const SET_VOWEL: Readonly<Partial<Record<LexicalSet, string>>> = {
+  KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'æ', LOT: 'ɑ', STRUT: 'ʌ', FOOT: 'ʊ', BATH: 'æ', CLOTH: 'ɔ', NURSE: 'ɝ', FLEECE: 'i',
+  FACE: 'eɪ', PALM: 'ɑ', THOUGHT: 'ɔ', GOAT: 'oʊ', GOOSE: 'u', PRICE: 'aɪ', CHOICE: 'ɔɪ', MOUTH: 'aʊ', NEAR: 'ɪ',
+  SQUARE: 'ɛ', START: 'ɑ', NORTH: 'ɔ', FORCE: 'ɔ', CURE: 'ʊ', happY: 'i', lettER: 'ɚ', commA: 'ə',
+};
+/* The shortest the context factors take a vowel to, as Klatt's minimum duration keeps it: "be-" in "because". */
+const KLATT_FLOOR = 0.5;
 const VOICED_FRICATIVES = new Set(['v', 'ð', 'z', 'ʒ']);
 const VOICED_STOPS = new Set(['b', 'd', 'g', 'dʒ']);
 const VOICELESS_STOPS = new Set(['p', 't', 'k', 'tʃ', 'ʔ']);
@@ -55,12 +64,16 @@ function postvocalic(ipa: string | undefined): number {
   return 1;
 }
 
-/** The context factor on syllable k's vowel in a phrase (see above). */
-function klattFactor(span: readonly Syllable[], k: number, last: boolean): number {
+/**
+ * The context factor on syllable k's vowel in a phrase (see above). `weight` scales how far the
+ * context moves it, so a syllable-timed accent (stress ratio near 1) keeps its even rhythm.
+ */
+function klattFactor(span: readonly Syllable[], k: number, last: boolean, weight: number): number {
   const syl = span[k];
-  const v = syl.nucleus.ipa;
+  const v = (syl.nucleus.set && SET_VOWEL[syl.nucleus.set]) ?? syl.nucleus.ipa;
   const inh = INHERENT[v] ?? INHERENT[Array.from(v)[0]] ?? INHERENT_MEAN;
-  let f = Math.max(0.65, Math.min(1.45, inh / INHERENT_MEAN));
+  const own = Math.max(0.65, Math.min(1.45, inh / INHERENT_MEAN));
+  let f = 1;
   // the word this syllable is in: back to the previous word's end, on to its own
   let a = k;
   while (a > 0 && !span[a - 1].wordEnd) a--;
@@ -72,7 +85,7 @@ function klattFactor(span: readonly Syllable[], k: number, last: boolean): numbe
   const next = syl.coda[0]?.ipa ?? (k < b ? span[k + 1].onset[0]?.ipa : undefined);
   const c = postvocalic(next);
   f *= last ? c : 0.7 + 0.3 * c;
-  return f;
+  return own * Math.max(KLATT_FLOOR, 1 + (f - 1) * weight);
 }
 
 /** The pause after a phrase, s. */
@@ -131,6 +144,8 @@ export function speechPlan(
   // the default ratio keeps the exact constants, so speech in a stress-timed accent is unchanged
   const unstressedVowel = ratio === STRESS_RATIO ? UNSTRESSED_VOWEL : VOWEL_PAIR / (1 + ratio);
   const stressedVowel = ratio === STRESS_RATIO ? STRESSED_VOWEL : (VOWEL_PAIR * ratio) / (1 + ratio);
+  // the context factors in full at English's stress timing, half in a syllable-timed accent
+  const klattWeight = 0.5 + 0.5 * Math.max(0, Math.min(1, (ratio - 1) / (STRESS_RATIO - 1)));
   const out: SpokenNote[] = [];
   const sylOut: Syllable[] = [];
   const breath = opts.breath ?? 'between';
@@ -154,7 +169,7 @@ export function speechPlan(
       const syl = span[k];
       const last = k === span.length - 1;
       const stressed = syl.nucleus.stress !== undefined && syl.nucleus.stress > 0;
-      let vowel = syl.nucleus.dur ?? (stressed ? stressedVowel : unstressedVowel) * klattFactor(span, k, last);
+      let vowel = syl.nucleus.dur ?? (stressed ? stressedVowel : unstressedVowel) * klattFactor(span, k, last, klattWeight);
       if (last) vowel *= FINAL_LENGTHENING;
       let consonants = 0;
       for (const c of syl.coda) consonants += c.dur ?? consonantDuration(c.ipa);

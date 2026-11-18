@@ -1,6 +1,6 @@
 {
   "name": "bellows-voice",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "An articulatory singing and speaking voice for bellowsjs: a physical model of a singer, lyrics and text in eight English accents, and text to IPA.",
   "license": "MIT",
   "type": "module",

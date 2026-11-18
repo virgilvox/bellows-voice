@@ -11,6 +11,7 @@
 import { EventKind, listEngines, type Bellows, type BusHandle, type FxInput, type Instrument, type KernelEvent, type NoteOptions, type NoteSpec, type NoteValue, type Scale, type TimeValue } from 'bellowsjs';
 import type { PronouncingDictionary, SungPlan, Syllable } from './lyrics/types';
 import { lyricsToSyllables } from './lyrics/read';
+import { IPA_SPAN, spellOut } from './lyrics/numbers';
 import { resolveAccent, type Accent } from './lyrics/accents';
 import { speechPlan } from './lyrics/speech';
 import { BEAT_LEAD_IN, beatLine, type BeatPattern, type BeatTiming } from './lyrics/beat';
@@ -48,6 +49,8 @@ export interface SingOptions {
   allophones?: boolean;
   /** Accent for this line, over the singer's: an id from ACCENTS ('southern-british', ...) or an Accent. */
   accent?: Accent | string;
+  /** Numbers, symbols and initialisms as words ("21st", "$5", "TV"), default true. */
+  numbers?: boolean;
 }
 
 export interface SpeakOptions {
@@ -64,14 +67,14 @@ export interface SpeakOptions {
   allophones?: boolean;
   /** Breaths in: 'between' phrases (default), 'all' (before the first too), or 'none'. */
   breath?: 'between' | 'all' | 'none';
+  /** Numbers, symbols and initialisms as words ("$5.50", "10:30", "TV"), default true. */
+  numbers?: boolean;
 }
 
-/**
- * What sing() planned and posted. `phrases` are the plan, each vowel on its beat. `leadIn` is the
- * longest any phrase starts before its own first beat, which can be more than the plan's own
- * lead-in: a phrase that opens on an aspirated p, t or k releases it early, so its vowel is voiced
- * on the beat. Live, call at least that far ahead of the first beat.
- */
+/* A phrase: a run of text, IPA between slashes kept whole, and its closing marks. */
+const PHRASE = new RegExp('(?:' + IPA_SPAN + '|[^.!?;:,\\n])+[.!?;:,\\n]*', 'gu');
+
+/** beatbox()'s options: the pattern's timing (bpm, swing, repeat), when, the hum's pitch and the breath. */
 export interface BeatboxOptions extends BeatTiming {
   /** Context time of the first step's hit. Left out, as soon as the line's lead-in can sound. */
   at?: number;
@@ -81,6 +84,12 @@ export interface BeatboxOptions extends BeatTiming {
   vel?: number;
 }
 
+/**
+ * What sing() planned and posted. `phrases` are the plan, each vowel on its beat. `leadIn` is the
+ * longest any phrase starts before its own first beat, which can be more than the plan's own
+ * lead-in: a phrase that opens on an aspirated p, t or k releases it early, so its vowel is voiced
+ * on the beat. Live, call at least that far ahead of the first beat.
+ */
 export interface SingResult extends SungPlan {
   /** IPA the vocal engine has no phoneme for, each once; those spans keep the sound before them. */
   unknown: string[];
@@ -205,9 +214,12 @@ export class Singer {
     const accent = resolveAccent(opts.accent ?? this.accent);
     const syllables: Syllable[] = [];
     const questions: boolean[] = [];
-    // each sentence or clause is a phrase; its closing mark sets its tune
-    for (const m of text.matchAll(/[^.!?;:,\n]+[.!?;:,\n]*/g)) {
+    // numbers as words first, so "$5.50" and "10:30" are not split at their marks; then each
+    // sentence or clause is a phrase, its closing mark setting its tune, IPA kept whole
+    const words = opts.numbers === false ? text : spellOut(text);
+    for (const m of words.matchAll(PHRASE)) {
       const part = lyricsToSyllables(m[0], {
+        numbers: false,
         dictionary: opts.dictionary ?? this.dictionary ?? undefined,
         allophones: opts.allophones,
         accent,
@@ -327,6 +339,7 @@ export class Singer {
             dictionary: opts.dictionary ?? this.dictionary ?? undefined,
             allophones: opts.allophones,
             accent: opts.accent ?? this.accent,
+            numbers: opts.numbers,
           })
         : lyrics;
     const state = this.state();

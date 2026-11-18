@@ -91,7 +91,7 @@ export interface Accent {
   region?: string;
   /** Says r after a vowel ("car", "card"). A non-rhotic accent still links it before a vowel ("far away"). */
   rhotic: boolean;
-  /** Each lexical set's realization, IPA. A set left out keeps General American's vowel. */
+  /** Each lexical set's realization, IPA. A set left out keeps the reader's vowel (General American's before r only where named). */
   sets: Partial<Record<LexicalSet, string>>;
   /**
    * Share of a diphthong's time held on its first vowel, 0 to 1. Left out, General American's 0.8
@@ -126,6 +126,13 @@ export interface Accent {
 /** General American's speech melody: a fall at the end of a statement, accents about four semitones high. */
 export const DEFAULT_PROSODY: Prosody = { tune: 'fall', range: 4, declination: 2, rate: 1 };
 
+/*
+ * The vowels before r of rhotic North American English: "near", "square", "force" and "cure" as
+ * lax nɪɹ, skwɛɹ, fɔɹs, kjʊɹ, where the reader writes the tense vowel (iɹ, eɪɹ, oʊɹ, uɹ). Shared by
+ * every North American accent that does not say otherwise.
+ */
+const NORTH_AMERICAN_PRE_R: Partial<Record<LexicalSet, string>> = { NEAR: 'ɪ', SQUARE: 'ɛ', FORCE: 'ɔ', CURE: 'ʊ' };
+
 export const GENERAL_AMERICAN: Accent = {
   id: 'general-american',
   name: 'General American',
@@ -137,7 +144,7 @@ export const GENERAL_AMERICAN: Accent = {
    * bɔɹd, "near" nɪɹ, "poor" pʊɹ. The CMU dictionary writes it so; spelling rules read "ai", "oa",
    * "ea" and "oo" as their free vowels, so the sets say it here, for every word.
    */
-  sets: { NEAR: 'ɪ', SQUARE: 'ɛ', FORCE: 'ɔ', CURE: 'ʊ' },
+  sets: { ...NORTH_AMERICAN_PRE_R },
   t: 'flap',
   l: 'dark-coda',
   th: 'fricative',
@@ -264,6 +271,7 @@ export const SOUTHERN_US: Accent = {
   region: 'North America',
   rhotic: true,
   sets: {
+    ...NORTH_AMERICAN_PRE_R,
     DRESS: 'ɛ', TRAP: 'æ', BATH: 'æ', FACE: 'ɛɪ', THOUGHT: 'ɒɔ', CLOTH: 'ɒɔ', GOAT: 'ɜʉ', GOOSE: 'ʉ',
     PRICE: 'aː', MOUTH: 'æʊ', CHOICE: 'oɪ',
   },
@@ -283,6 +291,7 @@ export const CANADIAN: Accent = {
   region: 'North America',
   rhotic: true,
   sets: {
+    ...NORTH_AMERICAN_PRE_R,
     TRAP: 'a', BATH: 'a', LOT: 'ɒ', CLOTH: 'ɒ', THOUGHT: 'ɒ', PALM: 'ɒ', FACE: 'eɪ', GOAT: 'oʊ',
   },
   // Canadian raising: "price" and "house" start higher than "prize" and "how"
@@ -301,6 +310,7 @@ export const CALIFORNIAN: Accent = {
   region: 'North America',
   rhotic: true,
   sets: {
+    ...NORTH_AMERICAN_PRE_R,
     KIT: 'ɪ', DRESS: 'ɛ', TRAP: 'a', BATH: 'a', LOT: 'ɑ', CLOTH: 'ɑ', THOUGHT: 'ɑ', FOOT: 'ɵ', GOOSE: 'ʉ',
     GOAT: 'ɵʊ', FACE: 'eɪ',
   },
@@ -620,6 +630,7 @@ export const INLAND_NORTH: Accent = {
   rhotic: true,
   // the Northern Cities Shift: TRAP raised to eə, LOT fronted to a, THOUGHT lowered, DRESS and STRUT backed
   sets: {
+    ...NORTH_AMERICAN_PRE_R,
     TRAP: 'eə', BATH: 'eə', LOT: 'a', PALM: 'a', THOUGHT: 'ɑ', CLOTH: 'ɑ', DRESS: 'ɜ', STRUT: 'ɔ', KIT: 'ɘ',
   },
   hold: 0.65,

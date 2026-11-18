@@ -2,7 +2,7 @@
  * The CMU Pronouncing Dictionary as a PronouncingDictionary, for every English word the voice reads.
  * The data holds only the words the English reader gets wrong without a dictionary (scripts/gen-dict.mjs);
  * for every other word the reader already says what CMU says, so the reader with this map pronounces all
- * 124 911 of CMU's words as CMU does (test/lyrics/dict.test.ts). Decoded on first use, once.
+ * 124 101 of CMU's words as CMU does (test/lyrics/dict.test.ts). Decoded on first use, once.
  *
  * The Carnegie Mellon University Pronouncing Dictionary, Copyright (C) 1993-2015 Carnegie Mellon
  * University; BSD-style licence in data/cmudict/LICENSE and THIRD_PARTY_NOTICES.md.
@@ -14,7 +14,12 @@ import { PHONES, PHONE_CHARS } from './phones';
 
 let decoded: Map<string, string> | null = null;
 
-/** The dictionary: lower-case word to ARPAbet with stress digits ("HH AA1 R V ER0 D"). */
+/**
+ * The dictionary for the reader: lower-case word to ARPAbet with stress digits ("HH AA1 R V ER0 D").
+ * It holds only the words the reader gets wrong without it (about 100 000 of CMU's 124 101), so
+ * `get("cat")` is undefined: the reader already says "cat" as CMU does. Read words through
+ * `toIPA(text, { dictionary: cmudict() })`, not by looking them up here.
+ */
 export function cmudict(): PronouncingDictionary {
   if (decoded) return decoded;
   const phoneOf = new Map<string, string>();

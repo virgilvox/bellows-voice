@@ -22,17 +22,26 @@ import { AIR_DENSITY, SOUND_SPEED } from './air';
 
 const RHO = AIR_DENSITY;
 
-/** A trapezoidal branch's coefficients: 1 / D, the history coefficient M / T - R / 2 - K T / 4, and K. */
-export type BranchCoefficients = [invD: number, history: number, stiffness: number];
+/**
+ * A trapezoidal branch's coefficients, in a Float64Array of 3: [0] 1 / D, [1] the history coefficient
+ * M / T - R / 2 - K T / 4, [2] K. The functions below fill the array they are given, so the airway
+ * can configure on the audio thread without allocating.
+ */
+export type BranchCoefficients = Float64Array;
 
 /** A series mass-spring branch of mass M (g/cm^4) tuned to f0 (Hz) at quality q, at `rate`. */
-export function branchCoefficients(M: number, f0: number, q: number, rate: number): BranchCoefficients {
+export function branchCoefficients(M: number, f0: number, q: number, rate: number, out: BranchCoefficients = new Float64Array(3)): BranchCoefficients {
   const w0 = 2 * Math.PI * f0;
   const wSet = 2 * rate * Math.tan(w0 / (2 * rate));
   const K = wSet * wSet * M;
-  const R = (w0 * M) / q;
+  // the damping at the pre-warped frequency too, so Q holds near Nyquist (at w0 it came out 1.57 times
+  // too high for the fossae at 22050 Hz)
+  const R = (wSet * M) / q;
   const D = M * rate + 0.5 * R + K / (4 * rate);
-  return [1 / D, M * rate - 0.5 * R - K / (4 * rate), K];
+  out[0] = 1 / D;
+  out[1] = M * rate - 0.5 * R - K / (4 * rate);
+  out[2] = K;
+  return out;
 }
 
 /*
@@ -46,11 +55,11 @@ const PIRIFORM_DEPTH = 1.8;
 const PIRIFORM_Q = 10;
 
 /** The piriform fossae for a body of scale k at `rate`. */
-export function piriformBranch(k: number, rate: number): BranchCoefficients {
+export function piriformBranch(k: number, rate: number, out?: BranchCoefficients): BranchCoefficients {
   const depth = PIRIFORM_DEPTH * k;
   const area = (PIRIFORM_VOLUME * k * k * k) / depth;
   const leff = depth + 0.61 * Math.sqrt(area / 2 / Math.PI);
-  return branchCoefficients((RHO * leff) / (2 * area), SOUND_SPEED / (4 * leff), PIRIFORM_Q, rate);
+  return branchCoefficients((RHO * leff) / (2 * area), SOUND_SPEED / (4 * leff), PIRIFORM_Q, rate, out);
 }
 
 /*
@@ -65,9 +74,9 @@ const SINUS_NECK_LENGTH = 1;
 const SINUS_Q = 8;
 
 /** The maxillary sinuses for a body of scale k at `rate`. */
-export function sinusBranch(k: number, rate: number): BranchCoefficients {
+export function sinusBranch(k: number, rate: number, out?: BranchCoefficients): BranchCoefficients {
   const v = SINUS_VOLUME * k * k * k;
   const m = (RHO * SINUS_NECK_LENGTH * k) / (SINUS_NECK_AREA * k * k);
   const f0 = Math.sqrt((RHO * SOUND_SPEED * SOUND_SPEED) / v / m) / (2 * Math.PI);
-  return branchCoefficients(m, f0, SINUS_Q, rate);
+  return branchCoefficients(m, f0, SINUS_Q, rate, out);
 }

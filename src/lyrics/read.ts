@@ -93,7 +93,7 @@ export function readLyrics(text: string, frontEnds: readonly FrontEnd[]): Syllab
  * how CHIMERA's own sung syllables come out and how classical diction sings; IPA is sung as
  * written either way. `accent` (an id from ACCENTS or an Accent) re-voices the English words'
  * vowels and r, th and h first (accents.ts), and picks the t and l rules; General American, the
- * default, leaves them as the reader gave them.
+ * default, changes only the vowels before r (accents.ts, NORTH_AMERICAN_PRE_R).
  */
 export function lyricsToSyllables(
   text: string,

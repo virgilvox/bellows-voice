@@ -4,14 +4,19 @@ State of bellows-voice as of 2026-11-17. Read this first when picking the work b
 
 ## Where things stand
 
-- **Published:** `bellows-voice@0.7.1` on npm, tagged `v0.7.1`, peer-depending on
+- **Published:** `bellows-voice@0.7.2` on npm, tagged `v0.7.2`, peer-depending on
   `bellowsjs >=0.5.0 <0.6.0`. CI (`.github/workflows/ci.yml`): typecheck, the generated plugin, the
-  vocal tables and the calibrated vowels all checked current, 522 tests, build.
+  vocal tables, the calibrated vowels and the dictionary all checked current, the test suite, build.
+- **0.7.2 (2026-11-17):** the fixes from a full audit (CHANGELOG), and a two-rate lungs' end
+  (`lungTwoRate`, off: three gates still out after the first refit, HOW-IT-WORKS 13). Known and left:
+  a kick within about 0.2 s of a hum still leaks (the velum's speed); an accent moves the ejectives
+  only 0.6 to 1.8 dB; a voiced stop's slight glottal opening is averaged with a neighbour's (/d/ next
+  to /s/ pulls its abduction from 0.3 to about 0.19, not yet measured in sound).
 - **0.7.0 (2026-11-17):** the pronouncing dictionary (`bellows-voice/dict`, `scripts/gen-dict.mjs`, CI
   checks it), numbers as words (`lyrics/numbers.ts`), Klatt vowel lengths in speech. HOW-IT-WORKS 13.
 - **0.6.0 (2026-11-17):** voice settings and anatomy (one table, `engines/vocal-settings.ts`), the
   sinuses and piriform fossae (`dsp/side-branch.ts`), breaths between phrases, voiced-stop cavity
-  enlargement and slack cheeks, the whole head to draw (`view/drawing.ts`, `view/head.ts`), handles
+  enlargement (replaced in 0.6.2 by a slight glottal opening) and slack cheeks, the whole head to draw (`view/drawing.ts`, `view/head.ts`), handles
   (`view/handles.ts`) and plain-language helpers (`src/explain.ts`). HOW-IT-WORKS section 11 has the
   research and measurements; section 12 is a full review and comparison with CHIMERA, with a ranked plan (start there).
 - **0.5.0 (2026-11-17):** speech keeps phrase-final consonants (they were dropped: "hot" said as
@@ -31,12 +36,13 @@ State of bellows-voice as of 2026-11-17. Read this first when picking the work b
 - `src/lyrics`: text to timed IPA. Thirty-one accents as data in `accents.ts` (each with a `region`,
   `ACCENT_REGIONS`), Wells's lexical sets in `lexical-sets.ts`, `pronounce`/`toIPA`, speech timing and
   melody in `speech.ts`.
-- `src/voices.ts`: thirteen starter voices (`VOICE_PRESETS`, `singer(b, 'soprano')`), each with a
+- `src/voices.ts`: fourteen starter voices (`VOICE_PRESETS`, `singer(b, 'soprano')`), each with a
   speaking pitch inside published norms and a classical range.
 - `src/singer.ts`, `src/sing.ts`: `singer()`, `sing()`, `speak()`, through bellowsjs's public host API.
 - `src/plugin.ts`, `src/worklet-entry.ts`: the plugin; `scripts/gen-plugin.mjs` writes
   `src/worklet-code.gen.ts` and `src/catalog.gen.ts`.
 - `src/view`: `TractModel`, the mouth for a UI (`bellows-voice/view`).
+- `src/dict`: the CMU dictionary as the residual of the reader's mistakes (`bellows-voice/dict`).
 - Entries: `bellows-voice` (plugin, singer, text, presets), `/text` (no audio, no bellows), `/engine`
   (`registerVoice()` for `renderOffline`), `/view`, `/worklet.js`.
 

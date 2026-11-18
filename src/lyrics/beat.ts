@@ -46,10 +46,11 @@ export function parseBeat(text: string): BeatPattern {
       tok = tok.slice(0, -1);
     }
     let note: number | undefined;
-    const m = /^(.+?):(\d+)$/.exec(tok);
+    // "m:43" a hum at MIDI 43; "m:" alone, or a pitch that is not a number, keeps the default pitch
+    const m = /^(.+?):(-?\d*)$/.exec(tok);
     if (m) {
       tok = m[1];
-      note = Number(m[2]);
+      if (m[2] !== '' && m[2] !== '-') note = Math.max(0, Math.min(127, Number(m[2])));
     }
     const n = vocalBeatNumber(tok);
     if (n <= 0) {
@@ -108,7 +109,7 @@ export const BEAT_LEAD_IN = 0.15;
 
 /** A step's length in seconds at `bpm`. */
 export function beatStepSeconds(bpm: number): number {
-  return 60 / Math.max(20, Math.min(400, bpm)) / 4;
+  return 60 / Math.max(20, Math.min(400, Number.isFinite(bpm) ? bpm : 96)) / 4;
 }
 
 export interface BeatLine {
@@ -125,14 +126,17 @@ export function beatLine(pattern: BeatPattern | string, opts: BeatTiming = {}): 
   const steps0 = typeof pattern === 'string' ? parseBeat(pattern) : pattern;
   const repeat = Math.max(1, Math.min(64, Math.floor(opts.repeat ?? 1)));
   const step = beatStepSeconds(opts.bpm ?? 96);
-  const swing = Math.max(0, Math.min(0.6, opts.swing ?? 0)) * 0.5 * step;
+  const sw = opts.swing ?? 0;
+  const swing = Math.max(0, Math.min(0.6, Number.isFinite(sw) ? sw : 0)) * 0.5 * step;
   const steps: BeatPattern = [null];
   const durs: number[] = [BEAT_LEAD_IN];
+  let n = 0;
   for (let r = 0; r < repeat; r++) {
-    for (let i = 0; i < steps0.length; i++) {
+    for (let i = 0; i < steps0.length; i++, n++) {
       steps.push(steps0[i]);
-      // an off-beat sixteenth starts `swing` late: the step before it is that much longer
-      durs.push(step + (i % 2 === 0 ? swing : -swing));
+      // an off-beat sixteenth starts `swing` late: the step before it is that much longer. Counted
+      // across repeats, so a pattern of odd length still alternates on the beat
+      durs.push(step + (n % 2 === 0 ? swing : -swing));
     }
   }
   const syllables: Syllable[] = steps.map((s) => ({

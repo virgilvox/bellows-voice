@@ -88,14 +88,15 @@ export function writeBeatScore(w: BeatWriter, slot: number, h: number, len: numb
   }
   w.emit(first ? h - 0.15 : h, h + len, 0.03, 0.03, 1, 0);
   if (!hum) {
-    // the velum shut, so the pressure a sound builds stays in the mouth
+    // the velum shut, so the pressure a sound builds stays in the mouth: from before the ejective's
+    // piston (75 ms) and stronger than a hum's lowered velum, which a kick straight after a hum
+    // otherwise leaked through the nose (MEASURED: 1.8 cmH2O against 19.4 after a rest)
     w.begin();
     w.key(ART.velum, w.schwaTarget(ART.velum));
-    w.emit(first ? h - 0.15 : h - 0.02, h + len, 0.03, 0.03, 4, 0);
+    w.emit(first ? h - 0.15 : h - 0.1, h + len, 0.03, 0.03, 8, 0);
   }
-  const NaN_ = NaN;
   if (b === B_KICK) {
-    w.beatOral(P_P, h - 0.075, h, 2, 3.5, 0.01, NaN_, false, ART.jaw, 0.3, -1, 0, false);
+    w.beatOral(P_P, h - 0.075, h, 2, 3.5, 0.01, NaN, false, ART.jaw, 0.3, -1, 0, false);
     // the tongue body high in the mouth, short of the palate: the larynx compresses the volume behind
     // the lips, and the less of it the higher the pressure (dP = rho c^2 dV / V; MEASURED: the open
     // mouth's kick reached 7 cmH2O where the velar rimshot reached 19)
@@ -104,24 +105,24 @@ export function writeBeatScore(w: BeatWriter, slot: number, h: number, len: numb
   } else if (b === B_HAT || b === B_CHAT) {
     const fric = b === B_HAT ? P_S : P_SH;
     const end = b === B_HAT ? 0.03 : 0.05;
-    w.beatOral(P_T, h - 0.05, h, 2, 3.5, 0.01, NaN_, false, ART.jaw, 0.3, -1, 0, false);
+    w.beatOral(P_T, h - 0.05, h, 2, 3.5, 0.01, NaN, false, ART.jaw, 0.3, -1, 0, false);
     w.beatOral(fric, h + 0.012, h + end, 1.6, 0, 0, 0.008, false, -1, 0, -1, 0, false);
     blow(w, h - 0.03, h + end - 0.004, (b === B_HAT ? 1.25 : 1.3) * accent, b === B_HAT ? 0.36 : 0.38, 0.02);
   } else if (b === B_OPEN_HAT) {
     const end = Math.max(0.09, Math.min(0.26, len * 1.6));
-    w.beatOral(P_T, h - 0.05, h, 2, 3.5, 0.01, NaN_, false, ART.jaw, 0.3, -1, 0, false);
+    w.beatOral(P_T, h - 0.05, h, 2, 3.5, 0.01, NaN, false, ART.jaw, 0.3, -1, 0, false);
     w.beatOral(P_S, h + 0.012, h + end, 1.4, 0, 0, 0.008, false, -1, 0, -1, 0, false);
     blow(w, h - 0.03, h + end, 1.2 * accent, 0.4, 0.09);
   } else if (b === B_SNARE || b === B_PSH) {
     const pf = b === B_SNARE;
-    w.beatOral(P_P, h - 0.06, h, 2, 3.5, 0.01, NaN_, false, -1, 0, -1, 0, false);
+    w.beatOral(P_P, h - 0.06, h, 2, 3.5, 0.01, NaN, false, -1, 0, -1, 0, false);
     w.beatOral(pf ? P_F : P_SH, h + 0.018, h + (pf ? 0.08 : 0.11), pf ? 1.6 : 1.5, 0, 0, 0.008, false, -1, 0, -1, 0, false);
     blow(w, h - 0.045, h + (pf ? 0.075 : 0.1), 1.7 * accent, 0.45, pf ? 0.04 : 0.05);
   } else if (b === B_RIM) {
-    w.beatOral(P_K, h - 0.08, h, 2, 4, 0.008, NaN_, false, ART.jaw, 0.35, -1, 0, false);
+    w.beatOral(P_K, h - 0.08, h, 2, 4, 0.008, NaN, false, ART.jaw, 0.35, -1, 0, false);
     ejective(w, h - 0.08, h, accent);
   } else if (b === B_INWARD) {
-    w.beatOral(P_K, h - 0.06, h, 2, 4, 0.008, NaN_, false, ART.jaw, 0.35, -1, 0, false);
+    w.beatOral(P_K, h - 0.06, h, 2, 4, 0.008, NaN, false, ART.jaw, 0.35, -1, 0, false);
     w.beatOral(P_K, h + 0.012, h + 0.085, 1.4, 0, 0, 0.008, true, ART.tbY, w.xTbY - 0.015, -1, 0, false);
     w.begin();
     w.key(KEY_ABDUCTION, 0.5);
@@ -132,14 +133,14 @@ export function writeBeatScore(w: BeatWriter, slot: number, h: number, len: numb
     w.emit(h - 0.035, h + 0.085, 0.015, 0.05, 2, 0);
   } else if (b === B_CLICK) {
     // the tip seals without the alveolar's fronted tongue body (that would close the pocket)
-    w.beatOral(P_T, h - 0.12, h, 2, 3.5, 0.01, NaN_, false, -1, 0, -1, 0, true);
+    w.beatOral(P_T, h - 0.12, h, 2, 3.5, 0.01, NaN, false, -1, 0, -1, 0, true);
     // the back seal sits low, leaving a pocket for the dorsum to hollow
-    w.beatOral(P_K, h - 0.12, h + 0.035, 2, 0, 0, NaN_, false, ART.tbY, 7.85, ART.jaw, 0.4, false);
+    w.beatOral(P_K, h - 0.12, h + 0.035, 2, 0, 0, NaN, false, ART.tbY, 7.85, ART.jaw, 0.4, false);
     artic(w, ART.dorsum, 1, h - 0.03, h + 0.006, 0.04, 0.03, 2);
   } else if (b === B_POP) {
     // a light seal: pressing the lips squeezes the pocket before the suction starts
-    w.beatOral(P_P, h - 0.12, h, 2, 5, 0.006, NaN_, false, ART.lipAp, -0.08, -1, 0, false);
-    w.beatOral(P_K, h - 0.12, h + 0.03, 2, 0, 0, NaN_, false, -1, 0, -1, 0, false);
+    w.beatOral(P_P, h - 0.12, h, 2, 5, 0.006, NaN, false, ART.lipAp, -0.08, -1, 0, false);
+    w.beatOral(P_K, h - 0.12, h + 0.03, 2, 0, 0, NaN, false, -1, 0, -1, 0, false);
     // the lips stay sealed while the jaw and tongue hollow the mouth
     w.begin();
     w.key(ART.jaw, 1.6);
@@ -149,7 +150,7 @@ export function writeBeatScore(w: BeatWriter, slot: number, h: number, len: numb
   } else if (b === B_CRASH) {
     const end = Math.max(0.14, Math.min(0.34, len * 2));
     // the back of the tongue lingers by the velum after the burst ([x]) while the blade rises into a long [ʃ]
-    w.beatOral(P_K, h - 0.06, h, 2, 4, 0.008, NaN_, false, -1, 0, -1, 0, false);
+    w.beatOral(P_K, h - 0.06, h, 2, 4, 0.008, NaN, false, -1, 0, -1, 0, false);
     w.beatOral(P_K, h + 0.002, h + 0.045, 2, 0, 0, 0.008, true, ART.tbY, w.xTbY, -1, 0, false);
     w.beatOral(P_SH, h + 0.025, h + end, 1.4, 0, 0, 0.008, false, -1, 0, -1, 0, false);
     blow(w, h - 0.035, h + end, 1.75 * accent, 0.45, 0.14);
@@ -157,10 +158,13 @@ export function writeBeatScore(w: BeatWriter, slot: number, h: number, len: numb
     const end = Math.max(0.06, len * 0.92);
     // lips shut before the voice starts, so the note begins as a hum; the velum drops into the
     // sealed mouth while the folds are still apart, so the squeezed air does not pop out the nose
-    w.beatOral(P_M, h - 0.03, h + end, 1.6, 0, 0, NaN_, false, -1, 0, -1, 0, false);
+    w.beatOral(P_M, h - 0.03, h + end, 1.6, 0, 0, NaN, false, -1, 0, -1, 0, false);
+    // the velum starts back up 150 ms before the next step: it takes about 60 ms to shut, and a kick's
+    // piston rises from 75 ms before its hit into a sealed mouth (MEASURED: ending at the step, the
+    // piston ran with the port still open and a kick after a hum reached 1.6 cmH2O against 19.4)
     w.begin();
     w.key(ART.velum, 0.9);
-    w.emit(h - 0.02, h + end, 0.03, 0.03, 4, 0);
+    w.emit(h - 0.02, h + Math.max(0.05, Math.min(end, len - 0.15)), 0.03, 0.03, 4, 0);
     w.begin();
     w.key(KEY_ABDUCTION, 0.3);
     w.emit(h - 0.08, h - 0.03, 0.02, 0.02, 5, 0);
@@ -200,6 +204,13 @@ function ejective(w: BeatWriter, at: number, h: number, accent: number): void {
   w.begin();
   w.key(KEY_CLOSURE, 1);
   w.emit(at - 0.012, h + 0.03, 0.012, 0.03, 8, 0);
+  if (accent > 1) {
+    // accented: the larynx drops first, so the piston's stroke (and the volume it squeezes) is longer;
+    // its top is already the larynx's limit (1.6), so a higher target could not carry the accent
+    w.begin();
+    w.key(ART.larynx, -0.6);
+    w.emit(at - 0.07, h - 0.05, 0.02, 0.02, 6, 3);
+  }
   w.begin();
   w.key(ART.larynx, Math.min(1.6, 1.25 + 0.3 * accent));
   // still rising through the release: the piston, not the few tenths of a cm^3 the closure

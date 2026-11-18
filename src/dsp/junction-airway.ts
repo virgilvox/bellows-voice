@@ -252,7 +252,7 @@ const MIC_R = 2;
 /** The microphone's low cut on its flow term, Hz: a slow tongue or jaw pushing air out is not a thump. */
 const MIC_LOW_CUT = 70;
 /*
- * The lungs' end of the trachea, two rates (HOW-IT-WORKS 12, 14). For sound the end absorbs, half the
+ * The lungs' end of the trachea, two rates (HOW-IT-WORKS 12 and 13). For sound the end absorbs, half the
  * trachea's characteristic impedance as CHIMERA has it; for the steady flow of breath it should be a
  * human's lower-airway resistance, about 1 cmH2O per L/s (INFERRED from textbook adult ranges), where
  * the single acoustic resistor was 8.1 and starved breathy voice and /h/ of pressure. So the end is R_dc
@@ -362,6 +362,11 @@ export class JunctionAirway {
   /* The microphone flow term's low cut: its state and pole. */
   private micX = 0;
   private micY = 0;
+  /* The close microphone's level as it glides to `mic` (5 ms), and the glide's per-sample step. */
+  private micKs = 0;
+  /* Scratch for a side branch's coefficients in configure(). */
+  private readonly branchScratch = new Float64Array(3);
+  private micA = 0;
   private readonly micC: number = 0;
   /** The static glottal opening (abduction), cm^2. */
   agStatic = 0.02;
@@ -463,9 +468,6 @@ export class JunctionAirway {
   private readonly dv2: Float64Array;
   private readonly dvRaw: Float64Array;
   private readonly dvCoef: number = 0;
-  private readonly wCm: number = 0;
-  private readonly wKs: number = 0;
-  private readonly wIbs: number = 0;
 
   /* ---- Fixed tubes. ---- */
   private readonly tr: AirwayTube;
@@ -647,9 +649,6 @@ export class JunctionAirway {
     this.dv2 = new Float64Array(nj);
     this.dvRaw = new Float64Array(nj);
     this.dvCoef = 1 - Math.exp((-2 * Math.PI * DVDT_HZ) / rate);
-    this.wCm = WALL_TRACT.m * rate - 0.5 * WALL_TRACT.r;
-    this.wKs = WALL_TRACT.k;
-    this.wIbs = 1 / (WALL_TRACT.m * rate + 0.5 * WALL_TRACT.r);
     this.tr = new AirwayTube(TRACHEA_NODES + 2);
     this.na = new AirwayTube(NASAL_NODES + 5);
     // the longest fixed tube (the male trachea, 12 cm) in sections, with room
@@ -661,6 +660,7 @@ export class JunctionAirway {
     this.areaArgs = [this.areaBuf, 0, this.block];
     this.hpC = Math.exp((-2 * Math.PI * OUTPUT_HP) / rate);
     this.micC = Math.exp((-2 * Math.PI * MIC_LOW_CUT) / rate);
+    this.micA = 1 - Math.exp(-1 / (0.005 * rate));
     const fc = Math.min(OUTPUT_LP, 0.45 * rate);
     const K = Math.tan((Math.PI * fc) / rate);
     const q = Math.SQRT1_2;
@@ -723,10 +723,10 @@ export class JunctionAirway {
     if (this.branches) {
       // the maxillary sinuses on the middle nasal node, the piriform fossae at the first even junction
       // above the back duct (dsp/side-branch.ts)
-      const sb = sinusBranch(k, this.rate);
+      const sb = sinusBranch(k, this.rate, this.branchScratch);
       this.na.addResonator(c >> 1, sb[0], sb[1], sb[2]);
-      const pc = piriformBranch(k, this.rate);
-      this.pJ = 2 < this.nG - 1 && jv !== 2 ? 2 : -1;
+      const pc = piriformBranch(k, this.rate, this.branchScratch);
+      this.pJ = 2 < this.nG - 1 ? 2 : -1;
       this.pDi = pc[0];
       this.pG = 0.5 * pc[0];
       this.pCm = pc[1];
@@ -799,6 +799,7 @@ export class JunctionAirway {
     this.pSub = this.pSubSmooth = 0;
     this.uLips = this.uNose = 0;
     this.micX = this.micY = 0;
+    this.micKs = (this.mic * SOUND_SPEED) / (2 * MIC_R);
     this.pQ = this.pY = this.pP = 0;
     this.lungIL = this.lungV = 0;
     this.aVib = this.aVib0 = 0;
@@ -836,7 +837,6 @@ export class JunctionAirway {
   /** The next block's inputs are in the fields: limit and ramp the shape, place the sources, run the glottal pulse. */
   beginBlock(): void {
     this.updateWalls();
-    this.pJa = this.piriform > 0 ? this.pJ : -1;
     const first = this.blocks === 0;
     this.blocks++;
     const blk = this.block;
@@ -871,6 +871,15 @@ export class JunctionAirway {
       want = want < 2 ? 2 : want > nG - 2 ? nG - 2 : want;
       const shut = this.vel <= CLOSED && this.velum <= CLOSED && (this.uV < 1 && this.uV > -1);
       if (first || shut) this.jv = want;
+    }
+    // the piriform branch, on its junction unless the velum junction has moved onto it (the even loop
+    // skips jv, which would leave the branch a bare leak), then on the next even junction; its state
+    // starts clean wherever it lands
+    let pj = this.piriform > 0 ? this.pJ : -1;
+    if (pj >= 0 && pj === this.jv) pj = pj + 2 < nG - 1 ? pj + 2 : -1;
+    if (pj !== this.pJa) {
+      this.pQ = this.pY = this.pP = 0;
+      this.pJa = pj;
     }
     // section ramps (linear in area) and the moving set
     let nm = 0;
@@ -1447,6 +1456,8 @@ export class JunctionAirway {
     const gain = this.gain;
     const micK = (this.mic * SOUND_SPEED) / (2 * MIC_R);
     const micC = this.micC;
+    const micA = this.micA;
+    let micKs = this.micKs;
     const lungZ = (0.5 * RHOC) / tr.area[0];
     // the two-rate end: R_dc, then (R_ac - R_dc) || L as a trapezoidal companion (conductance gL, history iL)
     const two = this.lungTwoRate && lungZ > LUNG_R_DC;
@@ -1792,12 +1803,13 @@ export class JunctionAirway {
       const rad = this.uLips + this.uNose + this.wallRadAcc + wallRad;
       this.wallRadAcc = 0;
       wallRad = 0;
-      // the far field's flow derivative, and the close microphone's flow term (DC blocked below)
-      const mf = micK * rad;
-      const mh = mf - this.micX + micC * this.micY;
-      this.micX = mf;
+      // the far field's flow derivative, and the close microphone's flow term: the flow DC blocked
+      // first and scaled after, so moving `mic` mid-note changes a level, not a step (a thump)
+      const mh = rad - this.micX + micC * this.micY;
+      this.micX = rad;
       this.micY = mh;
-      const o = ((rad - this.radPrev) * iT + mh) * OUTPUT_GAIN;
+      micKs += (micK - micKs) * micA;
+      const o = ((rad - this.radPrev) * iT + micKs * mh) * OUTPUT_GAIN;
       this.radPrev = rad;
       const hp = o - this.hpX + this.hpC * this.hpY;
       this.hpX = o;
@@ -1816,6 +1828,7 @@ export class JunctionAirway {
     this.pP = pP;
     this.lungIL = lungIL;
     this.lungV = lungV;
+    this.micKs = micKs;
     if (off + count >= blk) this.agMean = this.agAcc / blk;
   }
 

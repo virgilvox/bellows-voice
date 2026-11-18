@@ -31,7 +31,7 @@ import { ART } from '../engines/vocal-articulators';
 const NASAL_VELUM = 0.45;
 
 /*
- * A beat drawn as the planner makes it (vocal-planner.ts, beatScore): the consonant it is built on,
+ * A beat drawn as the planner makes it (writeBeatScore in engines/vocal-beat-scores.ts): the consonant it is built on,
  * held, with the articulators the beat moves past it. An ejective shows its larynx rising, a click
  * its hollowed dorsum, the hum its lowered velum. '.' is the beatboxer's ready posture.
  */

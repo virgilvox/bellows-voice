@@ -1,11 +1,47 @@
 # Changelog
 
+## 0.7.2
+
+An audit of everything since 0.5.0 (four independent reviews, every finding checked before a fix).
+
+- **Speech keeps numbers whole.** `speak()` split phrases at `. , :` before reading numbers, so
+  "$5.50" was said "five dollars", a breath, "fifty". Numbers become words first now, and IPA
+  between slashes stays whole.
+- **Numbers, capitals and initialisms:** capitals with Y as the vowel are words ("WHY", "MY"); OK,
+  FBI, NYC and other common initialisms, dotted ones ("U.S.") and plurals ("DJs") are spelled; decades
+  ("1990s", "'90s"), "3pm" and "7:30 a.m.", a minus sign, codes with leading zeros, numbers against
+  letters ("MP3") and quadrillions are read; "$0.99" is ninety nine cents; a slash inside a word
+  ("and/or") is not taken for IPA. `numbers: false` now works on `speak`, `sing` and `toIPA`.
+- **The number words without the dictionary:** 51 that the rules misread (eleven, hundred,
+  thousand, percent, ninety...) are in the reader's own table from CMU, and "square".
+- **The dictionary no longer overrides the reader's own words:** a sung "fire" or "hour" keeps one
+  syllable, function words keep their weak forms with `cmudict()` loaded.
+- **Canadian, Californian, Inland North and Southern US** get General American's vowels before r.
+- **Vowel lengths in speech** follow an accent's lexical set (Southern British "go" was timed as a
+  schwa), weigh less in a syllable-timed accent, and never go under half (Klatt's minimum).
+- **Beatbox:** a kick straight after a hum builds its pressure again (the hum hands the velum back
+  150 ms before the next step; 0.5 to 13.8 cmH2O, steps under about 0.2 s still leak); an accented
+  kick or rimshot drops the larynx first for a longer stroke (rimshot +1.8 dB, kick +0.6); swing
+  alternates across repeats of an odd-length pattern; `m:` alone is a hum, hum pitches clamp to MIDI.
+- **Engine:** the piriform branch moves off the velum junction when that junction moves onto it (it
+  was a bare leak there: 1.1 cmH2O lost behind a closure at 22050 Hz); moving `mic` mid-note glides
+  over 5 ms instead of thumping; `size` mid-note waits for the next note, as the tract does; side
+  branches allocate nothing on the audio thread and their damping uses the pre-warped frequency.
+- **Helpers:** `describeSound` explains vowel glides and long vowels; `describeShape` says strong
+  settings in plain words ("tongue pushed far forward", "throat pockets on").
+- **Licensing and docs:** `dist/dict.js` carries Carnegie Mellon's copyright line with its data,
+  THIRD_PARTY_NOTICES lists the view files as ported from CHIMERA and the dictionary as shipped,
+  stale chunks no longer ship (`dist` is cleaned before each build: 9.4 MB unpacked to 6.9), and
+  stale numbers and pointers across README, HOW-IT-WORKS and HANDOFF are corrected.
+- Unreleased work from main is in too: a two-rate lungs' end, off by default (HOW-IT-WORKS 13).
+
+
 ## 0.7.1
 
 - **The r-coloured vowel's F3**, the one formant left unsolved: /ɝ/ ("heard", "bird") is now fitted to
   Hillenbrand et al.'s F1, F2 and F3 with the tongue tip free, F3 1826, 1968 and 2218 Hz against
   1711, 1930 and 2154 (it was 1845, 2123, 2543). Gated within 8 percent on every body.
-- `solveVowel(geometry, target, start, { free, f3Weight })`: choose the articulators a solve may move.
+- The vowel solver (internal, used by `scripts/gen-calibrated-vowels.mjs`) takes `{ free, f3Weight }`: the articulators a solve may move.
 - A sublingual side branch was built and measured, and left out: in this geometry it moved /ɝ/'s F2,
   not its F3 (HOW-IT-WORKS 13).
 
@@ -14,7 +50,7 @@
 
 - **Every word CMU has, said as CMU says it.** `bellows-voice/dict` (`cmudict()`), the CMU
   Pronouncing Dictionary as a residual of the English reader's mistakes: with it the reader says all
-  124 101 lookup-able words exactly as CMU does (homographs aside), 586 KB gzipped, loaded only by pages
+  124 101 lookup-able words exactly as CMU does (homographs aside), about 570 KB gzipped, loaded only by pages
   that import it. "Harvard" is ˈhɑɹ.vɚd. `singer(b, voice, { dictionary: cmudict() })`.
 - **Numbers, symbols and initialisms as words**, on by default (`numbers: false` turns it off):
   "21st", "$5.50", "10:05", "50%", "1984", "TV". `spellOut`, `cardinal`, `ordinal`, `year`, `letters`.

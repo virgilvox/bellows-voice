@@ -36,3 +36,34 @@ describe('numbers, symbols and letters as words', () => {
     expect(toIPA('TV')).toBe('ti.ˈvi');
   });
 });
+
+describe('the cases the 2026-11-17 audit found', () => {
+  it('reads capitals with Y as a word, and the initialisms that have a vowel', () => {
+    expect(spellOut('WHY DO YOU CRY')).toBe('WHY DO YOU CRY');
+    expect(spellOut('OK, the FBI')).toBe('/oʊ.ˈkeɪ/, the /ɛf.bi.ˈaɪ/');
+    expect(spellOut('in the U.S. army')).toBe('in the /ju.ˈɛs/ army');
+    expect(spellOut('DJs')).toBe('/di.ˈdʒeɪz/');
+    expect(spellOut('NYC')).toBe('/ɛn.waɪ.ˈsi/');
+  });
+  it('keeps decades, clock times, a minus sign, codes and numbers against letters', () => {
+    expect(spellOut('the 1990s and the 90s')).toBe('the nineteen nineties and the nineties');
+    expect(spellOut('3pm')).toBe('three /pi.ˈɛm/');
+    expect(spellOut('-5')).toBe('minus five');
+    expect(spellOut('007')).toBe('zero zero seven');
+    expect(spellOut('MP3')).toBe('/ɛm.ˈpi/ three');
+    expect(spellOut('1,000%')).toBe('one thousand percent');
+    expect(spellOut('$0.99')).toBe('ninety nine cents');
+    expect(cardinal(1e15)).toBe('one quadrillion');
+    expect(year(-5)).toBe('minus five');
+  });
+  it('takes a slash inside a word as a slash, not IPA, as the reader does', () => {
+    expect(spellOut('and/or 3 pads/books')).toBe('and/or three pads/books');
+    expect(spellOut('/ti.ˈvi/ 2')).toBe('/ti.ˈvi/ two');
+  });
+  it('says the number words right without the dictionary', () => {
+    expect(toIPA('eleven hundred thousand percent')).toBe(toIPA('eleven hundred thousand percent', { dictionary: cmudict() }));
+  });
+  it('keeps the reader\'s one-syllable "fire" and "hour" with the dictionary loaded', () => {
+    expect(toIPA('fire hour', { dictionary: cmudict() })).toBe(toIPA('fire hour'));
+  });
+});

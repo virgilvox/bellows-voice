@@ -23,7 +23,7 @@ describe('the voice in plain words', () => {
   it('says a mouth shape in a sentence, with neutral values left out', () => {
     expect(describeShape({})).toBe('A neutral mouth.');
     expect(describeShape({ size: 1, jawSet: 0 })).toBe('A neutral mouth.');
-    expect(describeShape({ tongueFront: 1, larynxSet: -0.7, size: 1.22 })).toBe('Head much bigger, tongue pushed well forward, voice box very lowered.');
+    expect(describeShape({ tongueFront: 1, larynxSet: -0.7, size: 1.22 })).toBe('Head much bigger, tongue pushed far forward, voice box very lowered.');
   });
 
   it('has a setting for every engine param it names, and presets that use only those', () => {
@@ -36,5 +36,16 @@ describe('the voice in plain words', () => {
     }
     const names = new Set(VOICE_SETTINGS.map((s) => s.param));
     for (const p of SHAPE_PRESETS) for (const k of Object.keys(p.values)) expect(names.has(k), `${p.id}.${k}`).toBe(true);
+  });
+});
+
+describe('the helpers on glides and toggles', () => {
+  it('describes vowel glides and long vowels, and says strong settings in plain words', async () => {
+    const { describeSound, describeShape } = await import('../../src/explain');
+    expect(describeSound('aɪ')).toMatch(/^A gliding vowel: it starts wide open .* As in "high"\.$/);
+    expect(describeSound('əʊ')).toContain('gliding');
+    expect(describeSound('iː')).toContain('"heed"');
+    expect(describeSound('ɾ')).toContain("It is the t in American 'water'.");
+    expect(describeShape({ piriform: 1, nasal: 1, lipOpen: -1 })).toBe('Throat pockets on, lips almost shut, voice right through the nose.');
   });
 });

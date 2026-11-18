@@ -81,6 +81,32 @@ const FUNCTION_WORDS: ReadonlyMap<string, string> = new Map([
  * word keeps one note. MEASURED against the CMU dictionary, with these and the 2026-11-13 rules: 77.0
  * percent of 469 common and lyric words exact (49.7 before), 74.8 percent of 397 inflected ones (9.6).
  */
+/*
+ * The words numbers.ts writes, where the rules miss them (eleven, hundred, thousand, percent): CMU's
+ * pronunciations, so numbers are said right without the dictionary.
+ */
+const NUMBER_WORDS: ReadonlyArray<[string, string]> = [
+  ['billion', 'B IH1 L Y AH0 N'], ['dollar', 'D AA1 L ER0'], ['dollars', 'D AA1 L ER0 Z'],
+  ['eighteen', 'EY0 T IY1 N'], ['eighteenth', 'EY0 T IY1 N TH'], ['eighth', 'EY1 T TH'],
+  ['eightieth', 'EY1 T IY0 IH0 TH'], ['eleven', 'IH0 L EH1 V AH0 N'], ['eleventh', 'IH0 L EH1 V AH0 N TH'],
+  ['fifteen', 'F IH0 F T IY1 N'], ['fifteenth', 'F IH0 F T IY1 N TH'], ['fiftieth', 'F IH1 F T IY0 IH0 TH'],
+  ['fortieth', 'F AO1 R T IY0 IH0 TH'], ['fourteen', 'F AO1 R T IY1 N'], ['fourteenth', 'F AO1 R T IY1 N TH'],
+  ['hundred', 'HH AH1 N D R AH0 D'], ['hundreds', 'HH AH1 N D R AH0 D Z'],
+  ['hundredth', 'HH AH1 N D R AH0 D TH'], ['million', 'M IH1 L Y AH0 N'], ['millions', 'M IH1 L Y AH0 N Z'],
+  ['millionth', 'M IH1 L Y AH0 N TH'], ['minus', 'M AY1 N AH0 S'], ['nineteen', 'N AY1 N T IY1 N'],
+  ['nineteenth', 'N AY1 N T IY1 N TH'], ['nineties', 'N AY1 N T IY0 Z'], ['ninetieth', 'N AY1 N T IY0 IH0 TH'],
+  ['ninety', 'N AY1 N T IY0'], ['ninth', 'N AY1 N TH'], ["o'clock", 'AH0 K L AA1 K'],
+  ['percent', 'P ER0 S EH1 N T'], ['second', 'S EH1 K AH0 N D'], ['seven', 'S EH1 V AH0 N'],
+  ['seventeen', 'S EH1 V AH0 N T IY1 N'], ['seventeenth', 'S EH1 V AH0 N T IY1 N TH'],
+  ['seventh', 'S EH1 V AH0 N TH'], ['seventies', 'S EH1 V AH0 N T IY0 Z'],
+  ['seventieth', 'S EH1 V AH0 N T IY0 IH0 TH'], ['seventy', 'S EH1 V AH0 N T IY0'],
+  ['sixteen', 'S IH0 K S T IY1 N'], ['sixteenth', 'S IH0 K S T IY1 N TH'],
+  ['sixtieth', 'S IH1 K S T IY0 IH0 TH'], ['thirteen', 'TH ER1 T IY1 N'], ['thirteenth', 'TH ER1 T IY1 N TH'],
+  ['thirtieth', 'TH ER1 T IY0 AH0 TH'], ['thirty', 'TH ER1 T IY0'], ['thousand', 'TH AW1 Z AH0 N D'],
+  ['thousands', 'TH AW1 Z AH0 N D Z'], ['thousandth', 'TH AW1 Z AH0 N D TH'],
+  ['trillion', 'T R IH1 L Y AH0 N'], ['twentieth', 'T W EH1 N T IY0 AH0 TH'], ['zero', 'Z IH1 R OW0'],
+];
+
 const IRREGULAR: ReadonlyMap<string, string> = new Map([
   ['one', 'W AH1 N'], ['once', 'W AH1 N S'], ['what', 'W AH1 T'], ['who', 'HH UW1'], ['two', 'T UW1'],
   ['into', 'IH1 N T UW0'], ['through', 'TH R UW1'], ['where', 'W EH1 R'], ['these', 'DH IY1 Z'],
@@ -105,7 +131,19 @@ const IRREGULAR: ReadonlyMap<string, string> = new Map([
   ["couldn't", 'K UH1 D AH0 N T'], ["wouldn't", 'W UH1 D AH0 N T'], ["shouldn't", 'SH UH1 D AH0 N T'],
   ["he's", 'HH IY1 Z'], ["she's", 'SH IY1 Z'], ["what's", 'W AH1 T S'], ["o'er", 'OW1 R'], ["ne'er", 'N EH1 R'],
   ["e'er", 'EH1 R'],
+  // "squa" reads as in "squad"
+  ['square', 'S K W EH1 R'], ['squares', 'S K W EH1 R Z'], ['squared', 'S K W EH1 R D'],
+  ...NUMBER_WORDS,
 ]);
+
+/**
+ * A word the reader's own tables say (homographs, function words, irregular and number words). The
+ * dictionary leaves these out (scripts/gen-dict.mjs), so a sung "fire" or "hour" keeps one syllable.
+ */
+export function isHandWord(word: string): boolean {
+  return HOMOGRAPHS.has(word) || FUNCTION_WORDS.has(word) || IRREGULAR.has(word);
+}
+
 
 /** Vowels a weak form reduces to schwa; i ɪ eɪ aɪ oʊ keep their quality. */
 const REDUCES = new Set(['ʌ', 'æ', 'ɑ', 'ɛ', 'ɔ', 'u', 'ʊ']);

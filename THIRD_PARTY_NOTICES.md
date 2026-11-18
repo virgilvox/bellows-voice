@@ -4,9 +4,10 @@ bellows-voice is licensed under MIT (see LICENSE). Parts of it are ported from, 
 from, the software below, which is distributed under its own license. The notice for each is
 reproduced here because the build strips source comments from the executable bundles, so the
 headers in the source files do not reach their code. Each bundle (`dist/index.js`,
-`dist/text.js`, `dist/engine.js`, `dist/worklet.js` and the chunks they share) opens instead
-with a one-line banner naming bellows-voice's license and CHIMERA's copyright and MIT license
-and pointing here; the shipped source maps quote the sources whole, headers included.
+`dist/text.js`, `dist/engine.js`, `dist/view.js`, `dist/dict.js`, `dist/worklet.js` and the
+chunks they share) opens instead with a one-line banner naming bellows-voice's license and
+CHIMERA's copyright and MIT license and pointing here, and the bundle that holds the CMU
+dictionary's data carries Carnegie Mellon's copyright line beside it; the shipped source maps quote the sources whole, headers included.
 
 This code lived in bellowsjs until 0.4.0 and moved here with its history; the paths below are
 this repository's.
@@ -37,8 +38,10 @@ CHIMERA file it came from and what was changed.
 | `src/lyrics/read.ts` | `crates/chimera/src/phonetics/syllables.rs` (`phonetics/syllables.ts`) |
 | `src/lyrics/durations.ts` | the consonant durations of `crates/chimera/src/phonetics/inventory.rs` (`phonetics/inventory.ts`) |
 | `src/lyrics/types.ts` | the Segment and Syllable model of `crates/chimera/src/phonetics/mod.rs` and the FrontEnd trait of `syllables.rs` (`phonetics/syllables.ts`, `phonetics/planner.ts`) |
+| `src/view/drawing.ts` | `crates/chimera/src/anatomy/human.rs:1228-1262`, the drawing parts of the geometry: the whole tongue, the lips with their outer faces, the incisors, the jaw bone, the soft palate and the epiglottis |
+| `src/view/head.ts` | `src/ui/render/profile.ts`, `buildProfile` and its helpers: the head around the tract: skin, skull, eye, vertebrae, nasal cavity and turbinates, hard palate, jaw, hyoid, thyroid, trachea, folds |
 | `src/dsp/area-rate.ts` | the area rate limit, `crates/chimera/src/voice/human_airway.rs:151-156, 190-262`, applied to the junction airway's grid sections and their sub-section minima |
-| `src/engines/vocal-geometry.ts` | the midsagittal geometry, `crates/chimera/src/anatomy/human.rs` 276-278 (body constants), 421-439 (NEUTRAL), 507-519 (constants), 644-692 (landmarks, area law, template-to-body map), 725-1263 (`compute`: jaw, velum, outer wall, lips, tongue, inner wall, grid rays, contact model, lip contact, area laws, spike clamp, lateral channel, centreline), 1266-1282 (`epilarynx_area`), 1287-1374 (`resample` with sub-section minima), 1398-1490 (`project_on`, `point_along`, `signed_gap`, `closest_approach`); `anatomy/geom.rs` (polar, rotate_about, ray_polyline, crossing_t, ray_crossings, bezier3, bezier2, arc, catmull_rom, tangent_angle); `math.rs` 89-158. Changes: preallocated point lists, results in scratch fields, a body set in place, drawing-only outputs left out |
+| `src/engines/vocal-geometry.ts` | the midsagittal geometry, `crates/chimera/src/anatomy/human.rs` 276-278 (body constants), 421-439 (NEUTRAL), 507-519 (constants), 644-692 (landmarks, area law, template-to-body map), 725-1263 (`compute`: jaw, velum, outer wall, lips, tongue, inner wall, grid rays, contact model, lip contact, area laws, spike clamp, lateral channel, centreline), 1266-1282 (`epilarynx_area`), 1287-1374 (`resample` with sub-section minima), 1398-1490 (`project_on`, `point_along`, `signed_gap`, `closest_approach`); `anatomy/geom.rs` (polar, rotate_about, ray_polyline, crossing_t, ray_crossings, bezier3, bezier2, arc, catmull_rom, tangent_angle); `math.rs` 89-158. Changes: preallocated point lists, results in scratch fields, a body set in place, the drawing outputs kept for `src/view/drawing.ts` |
 
 In the repository only, `test/lyrics/chimera-golden.test.ts` carries cases converted from
 CHIMERA's golden fixtures (`crates/chimera/tests/golden/phonetics-*.json`), and the lyric
@@ -62,8 +65,6 @@ in CHIMERA, written again in bellows' own idiom, and they say so in their header
 | `src/dsp/airway-tube.ts` | the fixed tubes' wall and viscous elements (`airway/network.rs:860-1010`), lumped onto a few nodes here |
 | `src/dsp/air.ts` | the physical constants and the trachea's and nasal cavity's wall tissues (`physics.rs:5-35`); the tract wall's mass, 1.5 g/cm^2, is CHIMERA's `WALL_SOFT` (`physics.rs:28`), its stiffness and damping Birkholz and Zhang's (below) |
 | `src/engines/vocal-tables.gen.ts` and `data/vocal/` | CHIMERA's articulator ranges and speeds, rest posture, inventory and calibrated targets, body constants and roofs, and tables measured on its geometry: the formant-tuning rows and the layout lengths (`data/vocal/README.md`) |
-| `src/view/drawing.ts` | the drawing parts of the geometry: the whole tongue, the lips with their outer faces, the incisors, the jaw bone, the soft palate and the epiglottis (`anatomy/human.rs:1228-1262`) |
-| `src/view/head.ts` | the head around the tract: skin, skull, eye, vertebrae, nasal cavity and turbinates, hard palate, jaw, hyoid, thyroid, trachea, folds (`src/ui/render/profile.ts`, `buildProfile`) |
 | `src/engines/vocal-beats.ts`, `src/engines/vocal-beat-scores.ts`, `src/lyrics/beat.ts` | the beatbox sounds, their airstreams, Standard Beatbox Notation symbols and gestural scores (ready posture, ejective piston, breath, snap and release-fricative timing), the pattern text format, the beat presets and the swing rule (`phonetics/beatbox.rs`, `control/beat_player.rs`), reimplemented on the online planner; the breath key, the ejective's push through the release, the kick's raised tongue body, the 'ch' and 'Psh' sounds, the close microphone and the retriggering on the phoneme parameter are bellows' own |
 | `src/engines/vocal-phonemes.ts` | the phoneme classes checked against `phonetics/inventory.rs`, and the stop release rules, no aspiration after /s/, 12 ms when unaspirated, aspiration only before a vowel (`phonetics/planner.rs`) |
 
@@ -94,20 +95,19 @@ Birkholz, Kroger and Neuschaefer-Rube (2011) for the self-oscillating two-mass f
 (`src/dsp/fold-oscillator.ts`); Shadle (1991) for keeping the obstacle source broadband while the
 free-jet, wall and labiodental sources fall through a second pole, and the critical Reynolds number
 of a turbulent jet (Flanagan, Speech Analysis, Synthesis and Perception) for the threshold under
-which a constriction makes no noise (`src/dsp/junction-airway.ts`); Klatt (1980) and Gold and
-Rabiner (1968) behind the resonators and the higher-pole correction in `src/dsp/resonator.ts`;
-Lisker and Abramson (1964) for voice onset times; Birkholz, Kroger and Neuschaefer-Rube (2011) and
+which a constriction makes no noise (`src/dsp/junction-airway.ts`); Lisker and Abramson (1964) for voice onset times; Birkholz, Kroger and Neuschaefer-Rube (2011) and
 Birkholz and Hoole (2012) for the six-stage articulator cascade (`src/dsp/cascade.ts`), the
 VocalTractLab 2.4 manual (Birkholz 2025) for return gestures and Lofqvist and Gracco (1997) for
 the virtual lip target (`src/engines/vocal-planner.ts`), all implemented from the publications. The consonant
 durations are CHIMERA's own values, not a published table; `src/lyrics/durations.ts` says how
 they compare with Klatt's.
 
-### No dictionary data
+### Dictionary data
 
-bellows ships no pronouncing dictionary: no CMUdict and no copy of CHIMERA's. `parseCmudict()`
-reads a dictionary the caller loads, and `Bellows.dictionary` or the `dictionary` option of
-`sing()` takes the resulting map. Without one, words go through letter-to-sound rules.
+No copy of CHIMERA's dictionary ships. The CMU Pronouncing Dictionary does, in `dist/dict.js`
+(`bellows-voice/dict`), under its notice below. `parseCmudict()` still reads a dictionary the
+caller loads, set as `singer.dictionary` or the `dictionary` option; without one, words go
+through letter-to-sound rules.
 
 ### License
 

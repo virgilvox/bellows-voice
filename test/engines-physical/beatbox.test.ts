@@ -95,7 +95,7 @@ describe('beatbox airstreams', () => {
     expect(Math.abs(1200 * Math.log2(f.freq / 98))).toBeLessThan(40);
   });
 
-  it('the close microphone adds the kick air below 300 Hz, and leaves the far field alone at 0', () => {
+  it('the close microphone adds the kick air below 300 Hz', () => {
     const far = probe('B', { mic: 0 });
     const near = probe('B', { mic: 1 });
     const from = Math.round((HIT - 0.03) * SR);
@@ -103,5 +103,82 @@ describe('beatbox airstreams', () => {
     const lowFar = bandEnergy(magSpectrum(far.out, from, size), SR, size, 20, 300);
     const lowNear = bandEnergy(magSpectrum(near.out, from, size), SR, size, 20, 300);
     expect(10 * Math.log10(lowNear / lowFar)).toBeGreaterThan(10);
+  });
+});
+
+describe('a kick straight after a hum', () => {
+  it('still builds its pressure: the hum hands the velum back in time (a quarter-second step)', () => {
+    const SR2 = 48000;
+    const kickPressure = (prev: string) => {
+      const v = vocalEngine.createVoice(SR2, { ...defaultParams(vocalEngine) }, rng('hk')) as unknown as {
+        setParam(k: string, x: number): void; noteOn(f: number, v: number): void; process(l: Float32Array, r: Float32Array, a: number, b: number): void;
+        air: { pSupra: number };
+      };
+      const steps: [string, number][] = [['.', 0], [prev, 0.25], ['B', 0.5]];
+      v.setParam('phoneme', vocalBeatIndex('.'));
+      v.noteOn(98, 0.8);
+      let next = 1;
+      const ann = (i: number) => {
+        if (!steps[next]) return;
+        v.setParam('nextIn', Math.max(0, steps[next][1] - i / SR2));
+        v.setParam('nextPhoneme', vocalBeatIndex(steps[next][0]));
+      };
+      ann(0);
+      const n = Math.round(0.56 * SR2);
+      const l = new Float32Array(n);
+      const r = new Float32Array(n);
+      let ps = 0;
+      for (let i = 0; i < n; i += 32) {
+        if (next < steps.length && i >= steps[next][1] * SR2) {
+          v.setParam('phoneme', vocalBeatIndex(steps[next][0]));
+          next++;
+          ann(i);
+        }
+        v.process(l, r, i, i + 32);
+        if (i > 0.44 * SR2 && i < 0.51 * SR2) ps = Math.max(ps, v.air.pSupra / CM_H2O);
+      }
+      return ps;
+    };
+    // MEASURED: after a rest 19.9 cmH2O; after a hum 0.5 before the fix (the piston ran with the
+    // velum still open), 13.8 after. Steps under about 0.2 s still leak: the velum needs ~60 ms to shut
+    expect(kickPressure('.')).toBeGreaterThan(15);
+    expect(kickPressure('m')).toBeGreaterThan(10);
+  });
+});
+
+describe('the close microphone moved mid-note', () => {
+  it('changes a level, not a step: after the change the output is the held setting\'s', () => {
+    const run = (switchAt: number) => {
+      const v = vocalEngine.createVoice(48000, { ...defaultParams(vocalEngine), mic: switchAt === 0 ? 0.3 : 0, vibratoDepth: 0, drift: 0 }, rng('mic')) as unknown as {
+        setParam(k: string, x: number): void; noteOn(f: number, v: number): void; process(l: Float32Array, r: Float32Array, a: number, b: number): void;
+      };
+      v.noteOn(110, 0.8);
+      const n = 24000;
+      const l = new Float32Array(n);
+      const r = new Float32Array(n);
+      for (let i = 0; i < n; i += 128) {
+        if (switchAt > 0 && i === switchAt) v.setParam('mic', 0.3);
+        v.process(l, r, i, i + 128);
+      }
+      return l;
+    };
+    const held = run(0);
+    const moved = run(12032);
+    const off = run(-1);
+    // the step a switch makes: the moved run against the two it moves between, sample to sample
+    let jump = 0;
+    let peak = 0;
+    let late = 0;
+    for (let i = 12032; i < held.length; i++) {
+      const lo = Math.min(held[i], off[i]);
+      const hi = Math.max(held[i], off[i]);
+      jump = Math.max(jump, moved[i] < lo ? lo - moved[i] : moved[i] > hi ? moved[i] - hi : 0);
+      peak = Math.max(peak, Math.abs(held[i]));
+      if (i > 12032 + 2400) late = Math.max(late, Math.abs(held[i] - moved[i]));
+    }
+    // MEASURED before the fix: the switch departed by 0.235, more than the far field's whole peak.
+    // Now the level glides over 5 ms between the two settings and lands on the held one
+    expect(jump).toBeLessThan(0.05 * peak);
+    expect(late).toBeLessThan(0.01 * peak);
   });
 });

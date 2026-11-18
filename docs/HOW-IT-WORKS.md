@@ -164,7 +164,7 @@ lips and nose (plus the walls), DC blocked at 25 Hz and low-passed.
 ## 6. The beatbox (2026-11-17)
 
 Twelve drum sounds (`vocal-beats.ts`), each a short gesture score built by the planner
-(`beatScore`), following CHIMERA's design and the airstreams real beatboxers use (Proctor et al. 2013 imaged a beatboxer with real-time MRI and found the
+(`writeBeatScore` in `vocal-beat-scores.ts`), following CHIMERA's design and the airstreams real beatboxers use (Proctor et al. 2013 imaged a beatboxer with real-time MRI and found the
 percussion made largely with non-pulmonic airstreams, ejectives among them):
 
 | Airstream | Sounds | How the engine makes it |
@@ -862,8 +862,9 @@ dP/dt = (U_glottis - dV_active/dt) / (C_air + C_walls),   C_air = V / (rho c^2)
 ```
 
 so a voice bar lasts longer if the cavity grows (dV_active, Westbury 1983: speakers lower the larynx
-and advance the tongue root during /b d g/) or its walls give (C_walls). Both are in now: voiced stops
-carry a cavity-enlargement gesture (larynx down 0.45, root forward 0.35, INFERRED amounts), and a
+and advance the tongue root during /b d g/) or its walls give (C_walls). Both were put in: voiced stops
+carried a cavity-enlargement gesture (larynx down 0.45, root forward 0.35, INFERRED amounts; replaced
+in 0.6.2 by a slight glottal opening, section 13, after it pulled the mouth into suction), and a
 `cheeks` setting blends the oral walls from the tract's (m 1.5, r 2000, k 1e5) toward Ishizaka et
 al.'s relaxed cheek (m 1.5, r 800, k 66 667, as later models reproduce it). MEASURED, late in the
 closure, low band against the vowel: /b/ -24 dB, /p/ -62 dB; slack cheeks raise /b/'s by 4 dB.
@@ -921,7 +922,8 @@ renderer and air apart from its canvas component.
    (Zhang et al. 2005). The geometry already draws its walls (the tongue's underside and the floor of
    the mouth), so its volume is an integral per frame, V = w * area between `under` and `floor`,
    and the trapezoidal shunt takes coefficients that change per block. Gate: /ɝ/'s F3 toward
-   Hillenbrand's 1379 to 1719 Hz, the one formant `HANDOFF.md` lists as unsolved, and /ʃ/'s peak.
+   Hillenbrand's 1711, 1930 and 2154 Hz, and /ʃ/'s peak. (Built and measured in section 13: the
+   branch moved F2, not F3; F3 was solved in 0.7.1 by fitting the tongue tip instead.)
 2. **Re-solve the vowels with the fossae** (11.1), then turn `piriform` on by default.
 3. **Twang as the epilarynx resonator.** Sundberg's singer's formant comes from an epilarynx tube
    whose area is under about a sixth of the pharynx's, acting as its own resonator near 3 kHz. Widen
@@ -960,7 +962,7 @@ in neither section 10 nor section 11.
    Unchanged. CHIMERA's speech path already runs Klatt's rules (`phonetics/durations.rs`; CHECKED).
 3. **The lungs are a resistor four to five times a human's** (new; intelligibility and naturalness,
    high wherever the glottis is open). The lung end of the trachea is a pressure source behind
-   `lungZ = rho c / (2 A_trachea)` (`junction-airway.ts:1428`, `:1607`; CHIMERA has the same port,
+   `lungZ = rho c / (2 A_trachea)` (`junction-airway.ts`, `configure`'s `lungZ` and the lung node in phase 0; CHIMERA has the same port,
    `voice/human_airway.rs:113`). That value was chosen as an acoustic absorber (a reflection of
    -1/3), and it is also the only resistance the mean flow meets below the glottis: 7.98 dyn s/cm^5,
    8.1 cmH2O per L/s. Adult airway resistance is about 1 to 2.5 cmH2O per L/s (RECALLED, a textbook
@@ -1110,7 +1112,7 @@ quarter-wave tube (the integral of p^2 A is V / 2); 60 log10 v; the closure's dP
 8. **The cheek values.** My memory of Ishizaka, French and Flanagan's table is relaxed cheek m 2.1,
    r 800, k 84 500 and tense cheek m 1.5, r 1060, k 33 300 (RECALLED, not certain). The code's
    1.5, 800, 66 667 matches neither row. Look the table up before the next release note cites it.
-9. **The enlargement is small against what a voice bar needs.** 80 ms at 80 to 100 cm^3/s is 6 to
+9. **The enlargement is small against what a voice bar needs** (it was replaced in 0.6.2). 80 ms at 80 to 100 cm^3/s is 6 to
    8 cm^3; a larynx lowered 0.45 cm under a pharynx of about 2.5 cm^2 is about 1.1 cm^3, plus the
    root (DERIVED, rough; the geometry's own dV was not read). The walls carry the rest, which is
    consistent with /b/ reaching 5.94 of 9.00 cmH2O. Gate the gesture's volume directly.
@@ -1132,8 +1134,8 @@ fair only with that in mind.
 | Turbulence | Reynolds law g (Re^2 - Re_c^2), source 1 cm downstream, incisor obstacle | Stevens' v^3 sqrt(A), Birkholz's source types and places, modulated in voicing |
 | Folds | drawn area pulse with jitter, shimmer, fry, diplophonia (two-mass designed, not built) | the same pulse, a geometric glottis and a self-oscillating two-mass model |
 | Articulators | critically damped second order | six-stage cascade with return gestures |
-| Planner | whole utterance, gestural score with labels | the same planner run online with 0.3 s of lookahead; voiced-stop enlargement, breath key |
-| English text | CMUdict shipped, rules as fallback, numbers spelled out | rules, an optional injected dictionary, no numbers |
+| Planner | whole utterance, gestural score with labels | the same planner run online with 0.3 s of lookahead; a slight glottal opening for voiced stops, breath key |
+| English text | CMUdict shipped, rules as fallback, numbers spelled out | the same since 0.7.0 (CMUdict as a residual of the rules, numbers and initialisms spelled out) |
 | Other languages | Korean, Mandarin, Russian front ends; IPA marks for aspiration, nasalization, palatalization, breathiness | English; IPA input |
 | Accents | one | thirty-one, through Wells's lexical sets |
 | Speech timing | Klatt's duration rules | two vowel lengths and final lengthening |
@@ -1190,7 +1192,7 @@ seal) and branches. Which of those a listener hears most is exactly what is not 
 
 **Where this voice is ahead:** cost; three fold models, one self-oscillating; Stevens' law with
 source types; the cascade and return gestures; thirty-one accents; settings, anatomy and handles
-that the engine plays; voiced-stop enlargement and cheeks; the microphone term inside the engine;
+that the engine plays; voiced stops' glottal opening and cheeks; the microphone term inside the engine;
 norms for the source with gates; and it is a library another program can use.
 
 ### 12.4 Beyond both: ideas and a ranked plan
@@ -1311,7 +1313,7 @@ the CMU Pronouncing Dictionary (124 101 a reader can look up: no edge apostrophe
 first) through the English reader with no dictionary, and keeps a word only where the reader's sounds or
 stress differ from CMU's. 81.0 percent do, mostly rare words and names, so the residual saves less than
 hoped, but the encoding does the rest: one character a phone (69 ARPAbet phones with stress), the sorted
-words front-coded. 1414 KB raw, 586 KB gzipped, against the 869 KB CHIMERA loads at start-up, and it
+words front-coded. 1414 KB raw, about 570 KB gzipped as shipped (`dist/dict.js`), against the 869 KB CHIMERA loads at start-up, and it
 is its own entry (`bellows-voice/dict`), so a page that does not want it never loads it. CHECKED:
 with it, the reader says every one of the 124 101 words exactly as CMU does, but for six homographs the
 reader chooses on purpose ("read", "live", "lead", "close", "wind", "wound"). "Harvard" is ˈhɑɹ.vɚd.

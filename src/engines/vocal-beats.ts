@@ -11,7 +11,7 @@
  * The sounds, their airstreams and Standard Beatbox Notation symbols follow CHIMERA by Jameson Hodge
  * (MIT, https://github.com/jamesondh/chimera-vocal-synth, crates/chimera/src/phonetics/beatbox.rs),
  * which builds each as a short gestural score. Reimplemented on bellows' planner
- * (engines/vocal-planner.ts, `beat`); 'ch' and 'Psh' are bellows' own. See THIRD_PARTY_NOTICES.md.
+ * (`writeBeatScore` in engines/vocal-beat-scores.ts); 'ch' and 'Psh' are bellows' own. See THIRD_PARTY_NOTICES.md.
  *
  * On the engine's `phoneme` parameter a beat sits after the table phonemes, two indices a sound:
  * plain, then accented (louder breath, a higher larynx). '.' is the ready posture, silent, which

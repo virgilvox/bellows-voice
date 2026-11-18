@@ -213,6 +213,8 @@ class VocalVoice implements Voice {
   private readonly setOff = new Float64Array(ARTICULATORS);
   /** Anatomy: the whole tract's length and the pharynx's, factors on the body's. */
   private size = 1;
+  /* `size` as last set: it takes hold at the next note, with the tract it scales (or now, between notes). */
+  private sizeNext = 1;
   private pharynxScale = 1;
   /** A contact's new position for each axis (x then y), for CascadeBank.placeFrom. */
   private readonly placed = new Float64Array(2);
@@ -308,6 +310,10 @@ class VocalVoice implements Voice {
     this.vel = clamp(Number.isFinite(vel) ? vel : 0.8, 0, 1);
     this.live = true;
     this.fresh = true;
+    if (this.size !== this.sizeNext) {
+      this.size = this.sizeNext;
+      this.applyBody();
+    }
     this.released = false;
     this.end = Infinity;
     this.env.reset();
@@ -415,8 +421,14 @@ class VocalVoice implements Voice {
         this.air.piriform = value >= 0.5 ? 1 : 0;
         return;
       case 'size':
-        this.size = clamp(value, 0.8, 1.25);
-        this.applyBody();
+        // the glottis scales with k at once while the tract waits for its next layout, so mid-note a
+        // new size waits for the next note, as the pharynx does
+        this.sizeNext = clamp(value, 0.8, 1.25);
+        if (!this.live || this.fresh) {
+          this.size = this.sizeNext;
+          this.applyBody();
+          if (this.live && this.fresh) this.start();
+        }
         return;
       case 'pharynx':
         this.pharynxScale = clamp(value, 0.8, 1.25);

@@ -215,7 +215,8 @@ describe('speech', () => {
   });
 
   it('evens the syllables out in a syllable-timed accent', () => {
-    const bare = (stressRatio?: number) => speechPlan(read('/ˈa.a.ˈa/'), { prosody: { ...ACCENTS.indian.prosody!, stressRatio } }).notes;
+    // one-syllable words: Klatt's context factors (weighted by the rhythm) stay at 1, so this is the stress arithmetic alone
+    const bare = (stressRatio?: number) => speechPlan(read('/ˈa/ /a/ /ˈa/'), { prosody: { ...ACCENTS.indian.prosody!, stressRatio } }).notes;
     const timed = bare(2);
     expect(timed[0].dur).toBeCloseTo(2 * timed[1].dur, 9);
     const even = bare(1);
@@ -283,5 +284,26 @@ describe('speech: vowel length carries the final consonant (Klatt 1979; Peterson
   });
   it('gives each vowel its own length: a long /ɑ/, a short /ɪ/', () => {
     expect(vowelOf('pot') / vowelOf('pit')).toBeGreaterThan(1.3);
+  });
+});
+
+describe('the vowels before r across North America', () => {
+  it('gives Canadian, Californian, Inland North and Southern US the lax vowels General American has', () => {
+    for (const accent of ['canadian', 'californian', 'inland-north', 'southern-us']) {
+      const ipa = toIPA('near square', { accent });
+      expect(ipa).toContain('ɪɹ');
+      expect(ipa).toContain('ɛɹ');
+    }
+  });
+});
+
+describe('speech: Klatt lengths under an accent', () => {
+  const vowelDur = (text: string, accent: string) => {
+    const syl = lyricsToSyllables(text, { accent, reduce: true });
+    syl[syl.length - 1].phraseEnd = true;
+    return speechPlan(syl, { prosody: resolveAccent(accent).prosody }).notes.filter((n) => !n.rest)[0].dur;
+  };
+  it('gives an accent\'s vowel its lexical set\'s length: Southern British "go" as long as General American\'s', () => {
+    expect(vowelDur('go', 'southern-british') / vowelDur('go', 'general-american')).toBeGreaterThan(0.85);
   });
 });

@@ -17,6 +17,8 @@ export interface PronounceOptions {
   accent?: Accent | string;
   /** The accent's t and l rules, default true. */
   allophones?: boolean;
+  /** Numbers, symbols and initialisms as words ("21st", "$5", "TV"), default true. */
+  numbers?: boolean;
 }
 
 export interface PronouncedWord {
