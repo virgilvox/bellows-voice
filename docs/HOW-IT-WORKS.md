@@ -1369,3 +1369,14 @@ four gates move with it on: the /b/-/p/ voice bar (7.3 dB against 8), ring's lif
 a voiceless /t/'s noise as it seals (-10 dB against -15), and /f/'s place as the weakest fricative.
 The refit is the next step: fit G_ASPIRATION and the constriction gains to Jongman et al. (2000) and
 the /h/-to-vowel level under the new flow, then turn it on.
+
+**The refit, first pass (MEASURED).** With the two-rate end on, scaling the constriction gains by 0.68
+(-3.3 dB: G_WALL 4.76, G_OBSTACLE 12.24, G_LABIAL 17, G_LIPS 2.04, G_FREE 4.08) puts /s/ back under the
+vowel and restores the fricative ordering, and G_ASPIRATION 2.5 leaves /h/ about 21 dB under the vowel.
+Three gates stay out, each for a physical reason that needs its own change rather than a looser gate:
+- ring's 2.5 to 3.5 kHz lift falls from 1.02 to 0.56 dB (aspiration has no part in it): the larger mean
+  flow loses more at ring's narrowed epilarynx (Borda-Carnot, U^2); ring's mapping needs revisiting;
+- /b/ voices 7.3 dB over /p/ late in a closure, against 8: the cavity fills faster (Ohala);
+- a voiceless /t/'s seal hisses at -13.7 dB against -15: the glottis opens 25 percent into the stop,
+  and with the flow no longer starved the narrowing before the seal is a fricative; the abduction
+  should wait for the seal.
