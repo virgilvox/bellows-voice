@@ -780,6 +780,9 @@ export class VocalPlanner {
         wsum[k] += w;
         vsum[k] += w * this.gVals[base + q];
         if (rank >= 0 && k < ARTICULATORS && act > held[k]) held[k] = act;
+        // and the velum for any consonant (a beat's rank 30 aside): a nasal setting must not leak an
+        // obstruent's pressure through the nose (MEASURED, 0.6.0: /p/ kept 24 percent of its pressure)
+        if (rank >= 0 && rank < 30 && act > held[ART.velum]) held[ART.velum] = act;
       }
     }
     const target = this.target;

@@ -932,3 +932,371 @@ renderer and air apart from its canvas component.
 5. **Analytic handle Jacobians.** The geometry is smooth; differentiating it once would replace the
    search with Newton steps, and the same Jacobian chained with the tube's sensitivity functions
    gives d(formants)/d(settings) for a "make it sound more like X" control.
+
+## 12. Full review and comparison with CHIMERA (Fable, 2026-11-17)
+
+A second review, of the whole voice after the anatomy round, and a comparison with CHIMERA at its
+head when cloned today (2adb3c7; this voice was ported from 1d3ea49, so some of CHIMERA below is
+newer than the port). Section 10 stands and is not repeated: where an item is already there it is
+named by its number. The labels are section 10's: CHECKED (read today in the file named), MEASURED
+(run today), DERIVED (algebra here, to be confirmed by a test), RECALLED (from memory of a source,
+to be looked up before it is repeated).
+
+What MEASURED means here: a scratch probe outside the repository driving `vocalEngine` directly as
+`anatomy.test.ts` does (male default voice, 48 kHz, 100 Hz, velocity 0.8 so the lungs are at 9.00
+cmH2O, vibrato and drift off, one render each, Node 22 on an Apple M1); pressures are the airway's
+`pSub` and `pSupra` read every 32 samples; formants are bellowsjs's LPC on 0.8 s of a held vowel.
+CHIMERA was built natively (`cargo build --release`) and timed on the same machine.
+
+### 12.1 What is missing or wrong, ranked
+
+Ranked by what a listener would notice, intelligibility first, then naturalness. "New" means it is
+in neither section 10 nor section 11.
+
+1. **The text layer** (10.4 item 1; intelligibility, high). Unchanged: 77 percent exact, no
+   dictionary, numbers not spelled out. CHIMERA ships CMUdict (869 KB gzipped, loaded lazily) and
+   spells numbers (`phonetics/english.rs`, `expand_numbers`; CHECKED).
+2. **Final voicing and speech durations** (10.1 correction 13, 10.4 item 3; intelligibility, high).
+   Unchanged. CHIMERA's speech path already runs Klatt's rules (`phonetics/durations.rs`; CHECKED).
+3. **The lungs are a resistor four to five times a human's** (new; intelligibility and naturalness,
+   high wherever the glottis is open). The lung end of the trachea is a pressure source behind
+   `lungZ = rho c / (2 A_trachea)` (`junction-airway.ts:1428`, `:1607`; CHIMERA has the same port,
+   `voice/human_airway.rs:113`). That value was chosen as an acoustic absorber (a reflection of
+   -1/3), and it is also the only resistance the mean flow meets below the glottis: 7.98 dyn s/cm^5,
+   8.1 cmH2O per L/s. Adult airway resistance is about 1 to 2.5 cmH2O per L/s (RECALLED, a textbook
+   respiratory figure). MEASURED, the mean over 0.4 s of a held sound, flow taken as
+   (P_lung - P_sub) / lungZ:
+
+   | Sound | P_sub, cmH2O (lungs 9.00) | Mean flow, cm^3/s |
+   |---|---|---|
+   | /ɑ/, modal | 7.71 | 159 |
+   | /ɑ/, `breath` 1 | 5.15 | 473 |
+   | /h/ | 2.76 | 767 |
+   | /s/ | 7.19 | 223 |
+   | /f/ | 6.86 | 263 |
+
+   So /h/ runs on 31 percent of the lung pressure, inside the 2 to 3 cmH2O where CHIMERA's pulse
+   gates voicing; breathy voice loses 43 percent; and every aspirated release sags the same way
+   while its flow is high, so part of a /p t k/ voice onset time is this resistor and not the
+   glottal gesture. The noise gains were calibrated around these pressures, so levels at the
+   default velocity are roughly right; what is wrong is how they move with flow, effort and
+   breathiness. It also explains 11.2 (correction 6 below). The fix is in 12.4 A.
+4. **Consonant targets do not know their vowel, and a closure is not guaranteed** (10.3 C and H;
+   intelligibility, high in fast passages). Unchanged.
+5. **Stress and phrase have no loudness** (new; naturalness, high in speech). Lung pressure is one
+   number per note, set by velocity (`vocal.ts`, header), and `speech.ts` sets pitch and length
+   only (CHECKED: no pressure or velocity in it). Speakers raise subglottal pressure on a stressed
+   syllable and let it sink over a breath group, and the spectral balance that follows is a cue to
+   stress stronger than overall level (Sluijter and van Heuven 1996, JASA 100). Also absent: the
+   intrinsic pitch of close vowels, creak or breathiness at a phrase end, glottal reinforcement of
+   a final /t/ and of a vowel that begins a phrase.
+6. **The default pulse does not follow its pressure or its pitch** (partly 10.3 D; naturalness,
+   medium to high in song). Open quotient, skew and closure come from `tension` alone
+   (`glottal.ts`, header); the vibration amplitude does not fall toward threshold; there is no
+   register (no falsetto above the passaggio; a search of `src` finds none), and larynx height
+   does not rise with pitch. Jitter is a white draw per cycle plus drift in three bands at 0.3,
+   0.9 and 2.7 Hz: nothing sits between 3 Hz and half the pitch, where physiological tremor and
+   Klatt and Klatt's (1990) flutter lie (4 to 13 Hz). The self-oscillating folds do have these
+   dependencies and are not the default.
+7. **The fricatives' pressure budget and /ʃ/'s place** (10.3 D and L; intelligibility, medium).
+   Unchanged, and item 3 comes first: the divider is computed from pressures that will move.
+8. **Branches still absent** (naturalness, medium; intelligibility for /ɹ/ and /l/). The sublingual
+   cavity (11.6). The side cavity of a lateral: the space over and behind the tongue in /l/ is a
+   closed branch whose zero, near 2 to 4 kHz, is much of what tells /l/ from a vowel (Stevens 1998;
+   Zhang and Espy-Wilson 2004, RECALLED); here `lateral` changes an area and adds no zero. The
+   valleculae and the laryngeal ventricle. The sphenoid and frontal sinuses (Dang and Honda model
+   four cavities) and the two unequal nasal passages (11.6). CHIMERA's fossae are a real side tube
+   (2.0 k cm of 0.9 k^2 cm^2 with soft walls, `human_airway.rs:109`), so it has the higher zeros
+   too.
+9. **Losses, the lung end and the limits of one dimension** (naturalness, low to medium).
+   Viscous resistance is evaluated at 700 Hz for every frequency (`junction-airway.ts:119`), where
+   boundary-layer loss grows as sqrt(f): 0.38 of the right value at 100 Hz and under by 2.07 at
+   3 kHz. Heat conduction at the wall is not there: for air it multiplies the boundary-layer
+   attenuation by 1 + (gamma - 1) / sqrt(Pr) = 1.47 (DERIVED from Kirchhoff's formula; a search of
+   the airway finds no thermal term). Both are small beside the wall at F1 and radiation above
+   2 kHz, so this is a few hertz of bandwidth, worth doing only with a bandwidth gate. The trachea
+   is 12 cm of uniform tube with that -1/3 end, so its resonances are near c / 4L and its odd
+   multiples, 730, 2190 and 3650 Hz; human subglottal resonances are near 600, 1550 and 2200 Hz
+   (RECALLED: Stevens 1998, Lulich 2010), so the second is about 640 Hz high. Plane waves hold up
+   to about c / 2w, 4.4 kHz for a mouth 4 cm wide; above that a real tract has transverse modes
+   and extra zeros (Blandin et al. 2015, RECALLED), which is the band where the fossae's dip was
+   tuned. The mouth radiates as a piston with no head around it.
+10. **Respiration** (naturalness, low to medium). There is no lung volume: pressure is commanded
+    through a 25 to 50 ms lag (`engines/vocal.ts:838`), a phrase can be any length, and the new
+    in-breath refills nothing, so its length and loudness are constants.
+11. **Smaller.** The in-breath's noise source is 1.5 k cm above the glottis whichever way the air
+    runs (`junction-airway.ts:1269-1274`; CHECKED), where an inward jet forms below the folds and
+    excites the trachea. The tongue is not a constant-volume body. No mouth noises.
+
+### 12.2 The mathematics of the anatomy round
+
+Rederived and right: the trapezoidal update (from M q' + R q + K y = p with y' = q, the left side
+collects to D = M / T + R / 2 + K T / 4 exactly as written); the pre-warp for the resonance; the
+junction solve (`ph`, `pG`, the state update, and `gamA` carrying `pG` at `junction-airway.ts:910`
+and `:1485`); the cotangent expansion and the 2M slope; 4193 Hz for the fossae and 455 Hz for the
+sinus from the stated dimensions; dF / F = -dV / V for a volume at the closed end of a uniform
+quarter-wave tube (the integral of p^2 A is V / 2); 60 log10 v; the closure's dP/dt.
+
+1. **The `nasal` setting opens the velum through every obstruent** (an error; intelligibility,
+   high when the setting is used). The hand-over h_a is the largest ramp of a consonant gesture
+   *that keys articulator a* (`vocal-planner.ts:782`). Stops and fricatives do not key the velum,
+   so h_velum stays 0 and the offset stays on. MEASURED, peak pressure above the glottis in the
+   consonant of /ɑ C ɑ/:
+
+   | `nasal` | /b/ | /p/ | /s/ | velum port in the consonant |
+   |---|---|---|---|---|
+   | 0 | 5.94 cmH2O | 9.03 | 6.54 | 0 cm^2 |
+   | 1 | 0.98 | 2.18 | 1.47 | 0.55 |
+
+   A /b/ becomes an /m/, a /p/ has no burst pressure and an /s/ has a fifth of its pressure. The
+   "Nasal" preset (0.6) opens 0.27 cm^2 (DERIVED: 0.7 x 0.6 - 0.15). Nasal speakers close the
+   velum for obstruents; Laver's nasal setting is on the sonorants. Fix: for the velum, take h
+   over every obstruent gesture (stop, affricate, fricative) whether or not it keys the velum.
+   Gate: with `nasal` 1 the three pressures stay within 10 percent of `nasal` 0. The same hole
+   exists for any articulator a constriction depends on without keying it (the jaw under a
+   sibilant is the next to measure); 12.4 D closes the class.
+2. **`size` is not a uniform scale** (an error in the claim, and a gap in the gate). 11.4 says a
+   wall keeps F1 from moving quite as far as 1 / s, then reports 0.824 against 0.833: further, not
+   less. MEASURED, ratios to size 1 (1 / s is 0.833 and 1.176):
+
+   | Vowel | F1, F2, F3 at size 1, Hz | at 1.2 | at 0.85 |
+   |---|---|---|---|
+   | ɑ | 702, 1416, 2571 | 0.808, 0.757, 0.827 | 1.218, 1.184, 1.165 |
+   | i | 354, 2338, 2783 | 0.777, 0.869, 0.834 | 1.114, 1.174, 1.153 |
+   | ə | 476, 1467, 2413 | 0.821, 0.768, 0.814 | 1.165, 1.176, 1.159 |
+   | ɛ | 584, 1812, 2608 | 0.796, 0.824, 0.822 | 1.140, 1.173, 1.170 |
+   | u | 371, 998, 2136 | 0.800, 0.842, 0.882 | 1.154, 1.156, 1.147 |
+
+   The spread at 1.2 is -9 to +6 percent around 1 / s, so a bigger head is also a different vowel.
+   F1 of /i/ and /u/ is within one harmonic of LPC error at 100 Hz; /ɑ/'s F2 and /u/'s F3 are not.
+   One cause is certain, though I did not show it is the whole of it: the geometry turns a sagittal
+   distance d into an area as alpha d^1.4 (`vocal-geometry.ts:68`, `:699`), so with d scaled by s
+   the tongue-shaped sections grow as s^1.4 while the lips (`:707`), glottis, trachea, nasal tube
+   and side branches grow as s^2. A tube is self-similar only if every area takes the same factor.
+   For `size` (not for the three calibrated bodies) multiply alpha by s^0.6. Two smaller points:
+   the wall term is not fixed, since F_w^2 goes as S / V and so as 1 / s, giving
+   F1^2 = F_tube^2 / s^2 + F_w^2 / s; and the gate should read the solver's `tubeResonances`, not
+   LPC, on five vowels, within 2 percent of the prediction.
+3. **The branch's low-frequency compliance depends on the sample rate.** One M and one K cannot
+   hold the zero, the slope at the zero and the volume together. The lumped pair matches the first
+   two and keeps 8 L_eff / (pi^2 L) = 0.94 of the true compliance V / (rho c^2) (DERIVED). The
+   pre-warp then raises K = w_set^2 M, and what F1 feels is 1 / K. MEASURED from
+   `branchCoefficients` for the male fossae: 0.725 of V / (rho c^2) at 22.05 kHz, 0.884 at 44.1,
+   0.893 at 48, 0.928 at 96. So the F1 shift the fossae cause changes by a fifth across rates.
+   Better: K = rho c^2 / V (the volume, exact at every rate) and M = K / w_set^2 (the zero where
+   Dang and Honda measured it), letting the slope go, since Q is INFERRED anyway. Better still is
+   12.4 C, which has no such choice to make.
+4. **The branch's Q depends on the sample rate.** R = w0 M / q uses the unwarped w0, and the
+   bilinear map narrows a resonance by cos^2(w0 T / 2). MEASURED: Q 10 as set comes out 10.2 at
+   96 kHz, 10.8 at 48, 10.9 at 44.1 and 14.6 at 22.05. Fix: R = w0 M / (q cos^2(w0 T / 2)).
+5. **Where the fossae attach moves with the larynx, the wrong way round.** They sit at grid
+   junction 2 (`junction-airway.ts:708`). The grid is anchored at the lips and the back duct takes
+   up larynx movement, so the branch is ductLen + 2 dx above the glottis. MEASURED: 2.3 cm in /ɑ/,
+   2.8 in /i/, 2.0 with `twang` 1, 3.2 with `larynxSet` -1. The fossae are part of the larynx and
+   travel with it. With twang the first three grid sections are the narrowed tube (1.02, 0.97,
+   1.13 cm^2, then 3.02), so the branch opens inside the epilarynx instead of beside its outlet.
+   CHIMERA attaches them 2.6 k cm above the glottis. Fix: each block, the even junction nearest
+   (2.6 k - ductLen) / dx, the state carried across.
+6. **Why the first in-breath was silent** (11.2). 330 cm^3/s at -2.9 cmH2O is 8.8 cmH2O per L/s:
+   the lung resistor of item 3 in 12.1, not the glottis, whose 0.9 cm^2 drops 0.08 cmH2O at that
+   flow (DERIVED: rho v^2 / 2 at 367 cm/s). With 2 cmH2O per L/s behind it the same glottis would
+   draw about 1050 cm^3/s (DERIVED from 1.96 U + 7.0e-4 U^2 = 2843 in CGS), 3.2 times the flow and
+   30 dB more by the v^3 law. Narrowing the glottis to 0.18 cm^2 got the level by another route:
+   a real in-breath is made with the folds wider than in speech. Fix the lungs, then reopen it.
+7. **The sinus neck has no end correction and the fossae have one.** Two flanged ends add about
+   1.7 r = 0.43 cm to the 1 cm ostium: 380 Hz, not 455 (DERIVED). Both are inside Dang and Honda's
+   range, as is CHIMERA's (14 k^3 cm^3 behind 0.12 k^2 cm^2 by 0.5 k cm, 730 Hz); the point is
+   that the two branches should follow one rule.
+8. **The cheek values.** My memory of Ishizaka, French and Flanagan's table is relaxed cheek m 2.1,
+   r 800, k 84 500 and tense cheek m 1.5, r 1060, k 33 300 (RECALLED, not certain). The code's
+   1.5, 800, 66 667 matches neither row. Look the table up before the next release note cites it.
+9. **The enlargement is small against what a voice bar needs.** 80 ms at 80 to 100 cm^3/s is 6 to
+   8 cm^3; a larynx lowered 0.45 cm under a pharynx of about 2.5 cm^2 is about 1.1 cm^3, plus the
+   root (DERIVED, rough; the geometry's own dV was not read). The walls carry the rest, which is
+   consistent with /b/ reaching 5.94 of 9.00 cmH2O. Gate the gesture's volume directly.
+
+### 12.3 Comparison with CHIMERA
+
+CHIMERA is a whole instrument: an engine in Rust compiled to WebAssembly, a React app with its own
+display language, a command line tool and measurement harnesses. bellows-voice is a library: a
+plugin for a host engine, with the voice lab on bellows.live as its only screen. The comparison is
+fair only with that in mind.
+
+| | CHIMERA (2adb3c7) | bellows-voice (0.6.0) |
+|---|---|---|
+| Airway | staggered-grid FDTD network, Courant up to 0.95, 96 kHz inside for 48 kHz out, polyphase decimation | Kelly-Lochbaum junctions at Courant 1, 48 kHz, fixed tubes as delay lines |
+| Section length | every section stretches with the tract | fixed c / 2fs; a fractional back duct takes the length (third-order Lagrange) |
+| Topology | any graph: nasal tube, sinus cavity, a distributed fossa tube, bronchi, creature tracts | one line with a velum node, lumped shunts for sinus and fossae |
+| Closure | area under a floor sets the flow to zero | an area floor of 1e-4 cm^2 leaks about 0.4 cm^3/s |
+| Jet loss, walls, radiation | Borda-Carnot quadratic, mass-spring-damper walls (k 3e5), Flanagan R and L | the same forms; walls k 1e5 (Birkholz and Zhang), cheeks blend |
+| Turbulence | Reynolds law g (Re^2 - Re_c^2), source 1 cm downstream, incisor obstacle | Stevens' v^3 sqrt(A), Birkholz's source types and places, modulated in voicing |
+| Folds | drawn area pulse with jitter, shimmer, fry, diplophonia (two-mass designed, not built) | the same pulse, a geometric glottis and a self-oscillating two-mass model |
+| Articulators | critically damped second order | six-stage cascade with return gestures |
+| Planner | whole utterance, gestural score with labels | the same planner run online with 0.3 s of lookahead; voiced-stop enlargement, breath key |
+| English text | CMUdict shipped, rules as fallback, numbers spelled out | rules, an optional injected dictionary, no numbers |
+| Other languages | Korean, Mandarin, Russian front ends; IPA marks for aspiration, nasalization, palatalization, breathiness | English; IPA input |
+| Accents | one | thirty-one, through Wells's lexical sets |
+| Speech timing | Klatt's duration rules | two vowel lengths and final lengthening |
+| Beatbox | 10 sounds, 7 presets, pads and a step sequencer | 12 sounds, 8 presets, patterns in code, a close microphone in the engine |
+| Voice shape | continuous male, female, child | the same, plus Laver settings, size, pharynx, cheeks, 13 voices |
+| Creatures | songbird (two-voice syrinx), seal, alligator, elephant; lip reed, whistle | none |
+| Views | 2D cutaway with handles, 3D head, tube, stroboscope, spectrum, spectrogram, vowel map, gestural score, piano roll, duet page, video recording | mouth with handles and moving air, spectrum with formants, vowel chart, timeline |
+| What the views read | 60 Hz telemetry from the engine (pressures, flows, glottal traces, active gestures) | the plan, replayed through a separate tracker (`view/tract.ts`) |
+| Measurement | Whisper word error on Harvard sentences, 23 real speakers phone by phone (TSP with a forced aligner), a real singer (CSD), a tuning log | jitter, shimmer and HNR against clinical norms, formants against Hillenbrand, fricative spectra, 522 tests |
+| Cost, one male voice | 29 percent of an M1 core, native (MEASURED) | 7.9 percent of an M1 core, in V8 (MEASURED) |
+
+**The airways are the same physics at different prices.** At Courant 1 the leapfrog scheme and the
+junction waveguide compute the same numbers for a fixed lossless tube. CHIMERA gives up Courant 1 so
+that sections can stretch, and buys the accuracy back by running at 96 kHz. Its dispersion is
+negligible: from sin(wT / 2) = lambda sin(k dx / 2) the phase velocity is off by 0.05 percent at
+5 kHz and 0.2 percent at 10 kHz (DERIVED, lambda 0.95). This airway keeps Courant 1 and pays with
+the interpolated back duct (1.1 dB at 12 kHz on each read, 10.1 correction 3). So neither is more
+accurate below 10 kHz. The difference is cost and freedom: CHIMERA can hang any tube anywhere, which
+is why it has creatures and a distributed fossa; this one cannot without 12.4 C, and costs a
+quarter as much.
+
+**Cost, MEASURED on one machine.** CHIMERA native rendered five Harvard sentences, 12.90 s of male
+speech, in 3.79 and 3.81 s: 29 percent of real time. This voice, whole, on a 4 s line cycling ten
+sounds, warm, took 1.65 microseconds a sample: 7.9 percent. The texts and the runtimes differ
+(native code against V8) and each was run once, so read the ratio as 3 to 4, not 3.7. CHIMERA's
+own figures on a Ryzen 7 8745HS are 19 to 21 percent native and 32 percent as WebAssembly in
+Chromium (`docs/rust-engine.md`); a browser runs the WebAssembly, so there the gap is wider than
+the native one measured here. This voice was not timed in a worklet today.
+
+**Quality.** No listening test compares them, and this repository has no number that could.
+CHIMERA does measure itself: Whisper (small.en) gets about 37 percent of the words wrong on its
+Harvard sentences where it gets 2.7 percent wrong on 1378 real recordings
+(`docs/speech-comparison.md`), and 49 to 54 percent of sung words (`docs/language-front-ends.md`).
+So CHIMERA is not intelligible by that judge either, and it knows by how much and on which phones.
+That is its largest lead: not a sound, a measurement. On paper this voice has the better
+turbulence model, articulator dynamics, wall values and fold models, measured against CHIMERA's
+renders and human spectra in VOICE-2.md; CHIMERA has the better text, timing, closure (a true
+seal) and branches. Which of those a listener hears most is exactly what is not known.
+
+**Where CHIMERA is ahead, and what it has that this voice lacks:**
+
+- a shipped dictionary and spelled-out numbers; Klatt durations in speech;
+- Korean, Mandarin and Russian front ends on one shared design, each checked by a native speaker,
+  and four IPA marks carried into gestures;
+- engine telemetry, and on it a stroboscope of the folds, a spectrogram, a gestural score, a tube
+  view, a 3D head, a duet page replaying recorded telemetry, and video recording;
+- the bestiary, with a syrinx, a lip reed and a whistle as sources;
+- a true seal at a closure, a distributed piriform tube, sections that stretch;
+- a step sequencer and pads for the beatbox, play from keys and Web MIDI in its own app;
+- harnesses that score renders against real speakers and a real singer, a word error rate, a log
+  of one measured tuning step at a time, a denormal test, and consonant calibration from the
+  command line;
+- a frequency-domain chain-matrix model of the whole network (branches included) as a test oracle.
+
+**Where this voice is ahead:** cost; three fold models, one self-oscillating; Stevens' law with
+source types; the cascade and return gestures; thirty-one accents; settings, anatomy and handles
+that the engine plays; voiced-stop enlargement and cheeks; the microphone term inside the engine;
+norms for the source with gates; and it is a library another program can use.
+
+### 12.4 Beyond both: ideas and a ranked plan
+
+Each idea has its equations and a gate. None is in CHIMERA.
+
+**A. Lungs with two rates, then a volume.** Keep the acoustic absorber and give the mean flow a
+human resistance by putting an inertance across the absorber:
+
+```
+Z_L(s) = R_aw + R_t s L_b / (R_t + s L_b)
+R_aw = 1.5 dyn s/cm^5,  R_t = rho c / (2 A_tr) - R_aw = 6.5,  L_b = R_t / (2 pi f_c)
+```
+
+Below f_c the flow takes the inertance and meets R_aw; above it the load is rho c / (2 A_tr) as
+now. With f_c 40 Hz, L_b is 0.026 g/cm^4, the inertance of 23 cm of 1 cm^2 airway, a fair size for
+the bronchial path. By the trapezoidal rule, with v the pressure across the pair and i the
+inertance's flow:
+
+```
+v_n = R_e (u_n - i_{n-1} - (T / 2 L_b) v_{n-1}),   R_e = R_t / (1 + R_t T / (2 L_b))
+i_n = i_{n-1} + (T / 2 L_b) (v_n + v_{n-1})
+```
+
+so the lung junction keeps its form, u = (p_L - h - 2b) / (R_aw + R_e + Z_t), with one history
+term h. Then the volume: dV_L/dt = -u, and alveolar pressure is muscle plus recoil,
+P_alv = P_m + (V_L - V_0) / C_rs with C_rs about 0.1 L per cmH2O (RECALLED), the muscles
+cancelling a share g of the recoil's fall. Pressure then sinks over a phrase by (1 - g) times the
+volume spent over C_rs, pitch follows through the coupling already in `vocal.ts`, and the next
+breath's length is the volume spent over the inflow, so a long phrase earns a longer breath (as
+Winkworth et al. 1995 report for speech, RECALLED). Gates: P_sub / P_lung at least 0.8 in a held
+/h/ and 0.95 in modal /ɑ/; the trachea's resonance bandwidths within 10 percent of today's; an
+in-breath at a glottis of 0.6 cm^2 or wider inside -45 to -20 dB; noise gains refitted once.
+
+**B. Stress as pressure.** A stressed syllable gets a pulse on P_m of 1 to 2 cmH2O through the
+lung lag, and `tension` follows pressure as velocity already makes it. Gate: the level above 500 Hz
+against the level below, stressed over unstressed, positive by 3 dB or more with overall level
+within 3 dB (the direction Sluijter and van Heuven report; their sizes to be looked up).
+
+**C. Stubs, not shunts.** At Courant 1 a closed side tube of length L is a delay line: a wave
+enters, returns 2L / c later, and that is exact, with every higher zero and the true volume. The
+male fossae are 5.72 sections long, so the reflection is a delay of 5.72 samples (a ring read with
+the fractional part interpolated) times a loss. At the junction the stub is a Thevenin source,
+2 p_s+ behind Z_s = rho c / A_s: a conductance 1 / Z_s and a history flow 2 p_s+ / Z_s, the same
+two terms the lumped branch gives now, so the junction's code keeps its shape. It costs a ring
+read and write per sample, less than the lumped branch's arithmetic. Corrections 3 and 4 of 12.2
+disappear, and the sublingual and lateral cavities become stubs whose length changes per block.
+Helmholtz cavities (the sinuses) stay lumped. Gate: the stub's zeros at (2n - 1) c / 4 L_eff
+within 1 percent at 22.05, 44.1, 48 and 96 kHz; the F1 shift equal across those rates within 0.3
+percent; then the vowels re-solved with the stub in `tubeResonances` and `piriform` on by default
+with F1 back inside 4.6 percent RMS.
+
+**D. Settings that cannot break a consonant.** Let g(q) be the constraints a sound needs (the gap
+at its place, the velum port for an obstruent, the lip opening for a labial), J = dg / dq their
+Jacobian from the constriction servo (10.3 H). Lay the setting's offset o in J's null space:
+
+```
+o' = o - J^T (J J^T)^-1 J o
+```
+
+so every setting moves only what the sound leaves free, by construction, where today's rule
+protects only keyed articulators. Gate: with each setting at both ends, every obstruent's oral
+pressure and constriction area within 10 percent of neutral.
+
+**E. A pulse that follows pressure and pitch.** Near threshold an oscillator's amplitude grows as
+the square root of the distance past it (the Hopf normal form), so scale the drawn pulse by
+sqrt((P_trans - P_th) / (P_ref - P_th)) with P_th from `phonation-threshold.ts`, which exists and
+serves only the geometric folds. Let P_th rise with pitch as Titze (1992) measured, and add a
+second register with hysteresis in pitch. Add a jitter band of 4 to 13 Hz to the drift. Gates: a
+voice bar that decays instead of stopping; level against lung pressure 8 to 12 dB per doubling
+(the range reported for speech, RECALLED); shimmer and jitter still inside the norms.
+
+**F. One listening number, shared.** Run CHIMERA's own harnesses (MIT) on this voice's renders of
+the same Harvard sentences: Whisper word error and the phone-by-phone distance to the 23 TSP
+speakers. That gives both projects one scale, puts 37 percent beside this voice's figure, and is
+the listener rung of 10.4 item 2 for the price of an adapter. The Modified Rhyme Test of 10.3 B
+stays as the closed-set gate.
+
+**G. Losses that follow frequency, and a lung end with two resonances.** Boundary-layer loss as
+R(w) = R_700 sqrt(w / w_700) (1.47 with heat), fitted by one shelf section at a few junctions, and
+a second, wider tracheal section so the subglottal resonances fall near 600 and 1550 Hz. Gate:
+closed-glottis bandwidths of F1 to F4 within 20 percent of sweep-tone data (Fujimura and Lindqvist
+1971), which also tests the walls.
+
+**H. Transverse modes, speculative.** A wide cavity's first cross mode at c / 2w could be a stub
+at the widest section. The coupling depends on asymmetry that a midsagittal model does not have, so
+this needs published 3D results to fit against before any code.
+
+**The plan.** 10.4's order stands. These enter it as follows; hours are for one person who knows
+the code.
+
+1. **The `nasal` protection** (12.2 item 1). A defect in shipped 0.6.0. `vocal-planner.ts`, a
+   test in `anatomy.test.ts`. 1 to 2 h. Risk low.
+2. **10.4 items 1 and 2, with idea F as the listener rung.** The dictionary store, the gate
+   ladder, and both voices on one scale. Adds 6 to 10 h for the adapter to CHIMERA's harnesses.
+3. **The lungs' two rates** (idea A, first half), before anything that reads a pressure: 10.4 item
+   5 and the breath both depend on it. `junction-airway.ts`, `vocal-beat-scores.ts`, the noise
+   gains, the golden renders. 5 to 8 h. Risk medium: every open-glottis level moves once.
+4. **10.4 item 3, final voicing**, as written.
+5. **Stubs, the placement and the re-solve** (idea C, 12.2 items 3 to 5 and 7), then the
+   sublingual and lateral cavities on the same element. `side-branch.ts`, `junction-airway.ts`,
+   `vowel-solver.ts`, `scripts/gen-calibrated-vowels.mjs`. 10 to 14 h. Risk medium.
+6. **The breath group** (idea A's volume, ideas B and E). `vocal.ts`, `speech.ts`, `glottal.ts`.
+   12 to 16 h. Risk medium: prosody by ear as well as by gate.
+7. **`size` made self-similar** (12.2 item 2), gated on the solver. 3 to 4 h. Risk low.
+8. **Null-space settings** (idea D), after 10.4 item 7 supplies the Jacobian. 4 to 6 h.
+9. **From CHIMERA, in this order:** numbers spelled out, a telemetry snapshot (10.3 M) with a
+   stroboscope and spectrogram on it, the four IPA marks, a true seal at a closure.
+10. **Idea G, then idea H** if a source for the 3D figures is found.

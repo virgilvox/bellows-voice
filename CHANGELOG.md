@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.1
+
+- **The `nasal` setting no longer leaks consonants through the nose.** It lowered the velum through
+  every obstruent (MEASURED: /p/ kept 24 percent of its mouth pressure); the velum now gives way to
+  any consonant gesture, as the other settings do (gated in anatomy.test.ts).
+- `docs/HOW-IT-WORKS.md` section 12: a full review of the model and a comparison with CHIMERA.
+
+
 ## 0.6.0
 
 - **Shaping the mouth.** Voice settings after Laver's articulatory settings, as params and through

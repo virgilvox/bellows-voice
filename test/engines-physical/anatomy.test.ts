@@ -43,6 +43,7 @@ function voice(steps: [string, number][], params: Record<string, number> = {}, s
   announce(0);
   let pl = 0;
   let lips = Infinity;
+  let peak = 0;
   for (let i = 0; i < n; i += 32) {
     if (next < steps.length && i >= steps[next][1] * SR) {
       v.setParam('phoneme', idx(steps[next][0]));
@@ -52,8 +53,9 @@ function voice(steps: [string, number][], params: Record<string, number> = {}, s
     v.process(l, r, i, Math.min(n, i + 32));
     pl = Math.min(pl, v.air.pLung / CM_H2O);
     lips = Math.min(lips, v.air.gridIn[v.air.nG - 1]);
+    peak = Math.max(peak, (v.air as unknown as { pSupra: number }).pSupra / CM_H2O);
   }
-  return { l, pl, lips };
+  return { l, pl, lips, peak };
 }
 
 function avgSpec(x: Float32Array, from: number, size = 8192): Float64Array {
@@ -181,5 +183,13 @@ describe('voice settings move the formants as acoustic theory says', () => {
   it('gives way to a consonant: spread, open lips and an open jaw still close for /b/', () => {
     const { lips } = voice([['ɑ', 0], ['b', 0.45], ['ɑ', 0.58]], { lipRound: -1, lipOpen: 1, jawSet: 1 }, 0.8, true, 110);
     expect(lips).toBeLessThan(1e-3);
+  });
+
+  it('keeps an oral consonant\'s pressure with the nasal setting: the velum closes for it', () => {
+    for (const c of ['p', 'b', 's']) {
+      const plain = voice([['ɑ', 0], [c, 0.45], ['ɑ', 0.6]], {}, 0.8, true, 110).peak;
+      const nasal = voice([['ɑ', 0], [c, 0.45], ['ɑ', 0.6]], { nasal: 1 }, 0.8, true, 110).peak;
+      expect(nasal / plain, c).toBeGreaterThan(0.7);
+    }
   });
 });

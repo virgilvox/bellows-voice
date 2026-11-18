@@ -4,14 +4,14 @@ State of bellows-voice as of 2026-11-17. Read this first when picking the work b
 
 ## Where things stand
 
-- **Published:** `bellows-voice@0.6.0` on npm, tagged `v0.6.0`, peer-depending on
+- **Published:** `bellows-voice@0.6.1` on npm, tagged `v0.6.1`, peer-depending on
   `bellowsjs >=0.5.0 <0.6.0`. CI (`.github/workflows/ci.yml`): typecheck, the generated plugin, the
   vocal tables and the calibrated vowels all checked current, 522 tests, build.
 - **0.6.0 (2026-11-17):** voice settings and anatomy (one table, `engines/vocal-settings.ts`), the
   sinuses and piriform fossae (`dsp/side-branch.ts`), breaths between phrases, voiced-stop cavity
   enlargement and slack cheeks, the whole head to draw (`view/drawing.ts`, `view/head.ts`), handles
   (`view/handles.ts`) and plain-language helpers (`src/explain.ts`). HOW-IT-WORKS section 11 has the
-  research and measurements; its 11.6 lists what is next (the sublingual cavity first).
+  research and measurements; section 12 is a full review and comparison with CHIMERA, with a ranked plan (start there).
 - **0.5.0 (2026-11-17):** speech keeps phrase-final consonants (they were dropped: "hot" said as
   "haw"); General American neutralizes tense vowels before r; the beatbox (`singer.beatbox`, twelve
   sounds, eight presets) and the `mic` param; beats in the tract view. `docs/HOW-IT-WORKS.md` maps the
