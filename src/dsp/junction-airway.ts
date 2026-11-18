@@ -251,6 +251,16 @@ const OUTPUT_HP = 25;
 const MIC_R = 2;
 /** The microphone's low cut on its flow term, Hz: a slow tongue or jaw pushing air out is not a thump. */
 const MIC_LOW_CUT = 70;
+/*
+ * The lungs' end of the trachea, two rates (HOW-IT-WORKS 12, 14). For sound the end absorbs, half the
+ * trachea's characteristic impedance as CHIMERA has it; for the steady flow of breath it should be a
+ * human's lower-airway resistance, about 1 cmH2O per L/s (INFERRED from textbook adult ranges), where
+ * the single acoustic resistor was 8.1 and starved breathy voice and /h/ of pressure. So the end is R_dc
+ * in series with (R_ac - R_dc) in parallel with an inertance, Z(0) = R_dc and Z(w) -> R_ac above
+ * LUNG_CROSSOVER, discretized by the trapezoidal rule like the side branches.
+ */
+const LUNG_R_DC = 1.0 * (CM_H2O / 1000);
+const LUNG_CROSSOVER = 30;
 
 const OUTPUT_LP = 18000;
 /** The moving-wall flow is smoothed by CHIMERA's 60 Hz two-pole (network.rs:360). */
@@ -321,6 +331,17 @@ export class JunctionAirway {
    * them; re-solving with the branch in the solver's tube is the plan (HOW-IT-WORKS.md, section 11).
    */
   piriform = 0;
+  /**
+   * The lungs' end: two rates (true) or CHIMERA's single acoustic resistor (false, the default until the
+   * noise gains are refitted). MEASURED with it on: /h/'s subglottal pressure 2.8 to 7.6 cmH2O and its level
+   * +17.5 dB, /s/ +3.3 dB, breathy /ɑ/ +2.2, modal /ɑ/ +0.5; and four calibrated gates move (the /b/-/p/
+   * voice bar 7.3 dB against 8, ring's lift 0.56 dB against 1, a /t/ seal's noise -10 dB against -15, /f/
+   * no longer the weakest fricative), so it waits for a refit of the turbulence gains (HOW-IT-WORKS 13).
+   */
+  lungTwoRate = false;
+  /* Its inertance's state: current through it and the voltage across the parallel pair. */
+  private lungIL = 0;
+  private lungV = 0;
   /** The piriform junction in force this block (-1 off). */
   private pJa = -1;
   /* Per-junction wall coefficients (the throat's, the cheeks' past the split). */
@@ -779,6 +800,7 @@ export class JunctionAirway {
     this.uLips = this.uNose = 0;
     this.micX = this.micY = 0;
     this.pQ = this.pY = this.pP = 0;
+    this.lungIL = this.lungV = 0;
     this.aVib = this.aVib0 = 0;
     this.agAcc = 0;
     this.agMean = 0.05;
@@ -1426,6 +1448,14 @@ export class JunctionAirway {
     const micK = (this.mic * SOUND_SPEED) / (2 * MIC_R);
     const micC = this.micC;
     const lungZ = (0.5 * RHOC) / tr.area[0];
+    // the two-rate end: R_dc, then (R_ac - R_dc) || L as a trapezoidal companion (conductance gL, history iL)
+    const two = this.lungTwoRate && lungZ > LUNG_R_DC;
+    const rDc = two ? LUNG_R_DC : lungZ;
+    const rP = lungZ - LUNG_R_DC;
+    const gL = two ? this.T / (2 * (rP / (2 * Math.PI * LUNG_CROSSOVER))) : 0;
+    const zEq = two ? 1 / (1 / rP + gL) : 0;
+    let lungIL = this.lungIL;
+    let lungV = this.lungV;
     const trLast = tr.nn - 2;
     const trSegF = trLast * TUBE_RING;
     const trD = tr.D[trLast];
@@ -1604,7 +1634,13 @@ export class JunctionAirway {
       {
         const b = tr.B[(pos - tr.D[0]) & (TUBE_RING - 1)];
         const zt = tr.Z[0];
-        const u = (pL - 2 * b) / (lungZ + zt);
+        let u: number;
+        if (two) {
+          const h = lungIL + gL * lungV;
+          u = (pL + zEq * h - 2 * b) / (rDc + zEq + zt);
+          lungV = zEq * (u - h);
+          lungIL = gL * lungV + h;
+        } else u = (pL - 2 * b) / (lungZ + zt);
         tr.F[pos] = b + zt * u;
       }
       tr.interior(pos);
@@ -1778,6 +1814,8 @@ export class JunctionAirway {
     this.pQ = pQ;
     this.pY = pY;
     this.pP = pP;
+    this.lungIL = lungIL;
+    this.lungV = lungV;
     if (off + count >= blk) this.agMean = this.agAcc / blk;
   }
 

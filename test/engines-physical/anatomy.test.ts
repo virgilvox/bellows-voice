@@ -214,3 +214,32 @@ describe('voice settings move the formants as acoustic theory says', () => {
     }
   });
 });
+
+describe('the lungs\' end (two rates, off by default until the noise gains are refitted)', () => {
+  it('keeps the subglottal pressure up under a high flow: /h/ near the lungs\' pressure, not starved', () => {
+    const psub = (two: boolean) => {
+      const v = vocalEngine.createVoice(SR, { ...defaultParams(vocalEngine), vibratoDepth: 0, drift: 0 }, rng('lungs')) as unknown as V & {
+        air: { lungTwoRate: boolean; pSubSmooth: number };
+      };
+      v.air.lungTwoRate = two;
+      v.setParam('phoneme', idx('h'));
+      v.noteOn(110, 0.8);
+      const n = SR;
+      const l = new Float32Array(n);
+      const r = new Float32Array(n);
+      let ps = 0;
+      let c = 0;
+      for (let i = 0; i < n; i += 128) {
+        v.process(l, r, i, i + 128);
+        if (i > 0.4 * n) {
+          ps += v.air.pSubSmooth / CM_H2O;
+          c++;
+        }
+      }
+      return ps / c;
+    };
+    // MEASURED: 2.77 cmH2O with CHIMERA's single resistor, 7.59 with the two-rate end (lungs at 9)
+    expect(psub(false)).toBeLessThan(4);
+    expect(psub(true)).toBeGreaterThan(6.5);
+  });
+});

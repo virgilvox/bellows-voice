@@ -1356,3 +1356,16 @@ the calibration (`scripts/gen-calibrated-vowels.mjs`) now fits /ɝ/ on F1, F2 an
 free (`solveVowel(..., { free, f3Weight })`), as an r-coloured vowel's F3 is the tip's: 1826, 1968 and
 2218 Hz, error 6.6, 8.0 and 13.1 percent down to 5.8, 2.4 and 3.0, shimmer within the half-point rule.
 Gated in voice-norms.test.ts (within 8 percent).
+
+**The lungs' end, built and waiting for a refit.** Section 12 found the trachea ending in one resistor
+of 8.1 cmH2O per L/s (half its characteristic impedance, CHIMERA's acoustic termination), which also
+resists the steady breath four to five times as much as human lower airways. A two-rate end is in the
+airway (`lungTwoRate`): R_dc, about 1 cmH2O per L/s, in series with (R_ac - R_dc) in parallel with an
+inertance, so Z(0) = R_dc and Z -> R_ac above 30 Hz, a trapezoidal companion in the lung node's
+closed-form solve (u = (pL + Z_eq h - 2b) / (R_dc + Z_eq + z_t)). MEASURED: /h/'s subglottal pressure
+from 2.8 to 7.6 cmH2O and its level +17.5 dB, /s/ +3.3, breathy /ɑ/ +2.2, modal /ɑ/ +0.5. It is off by
+default because the turbulence gains and closure timings were calibrated under the starved flow, and
+four gates move with it on: the /b/-/p/ voice bar (7.3 dB against 8), ring's lift (0.56 dB against 1),
+a voiceless /t/'s noise as it seals (-10 dB against -15), and /f/'s place as the weakest fricative.
+The refit is the next step: fit G_ASPIRATION and the constriction gains to Jongman et al. (2000) and
+the /h/-to-vowel level under the new flow, then turn it on.
