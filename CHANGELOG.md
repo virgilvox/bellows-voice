@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.2
+
+- **No click after "Harvard" in "Harvard Yard".** A tongue moving toward /j/ during the /d/ closure
+  grew the cavity behind it while the voicing folds let little air in: the mouth fell to -9.7 cmH2O
+  and the release popped inward (75 times the line's median sharpness). Voiced stops now part the
+  glottis slightly through the closure (0.02 cm^2, as English /b d g/ often partly devoice), in place
+  of 0.6.0's cavity enlargement, which deepened the suction: -3.3 cmH2O, 15 times. Late in a long
+  closure /b/ voices 11.7 dB over /p/ (0.6.0's 38 was partly the suction), 16 dB more with slack
+  cheeks. Gated in anatomy.test.ts. Open: /ɹgj/ still reaches -10.8 cmH2O without clicking; tissue
+  that yields to suction (an elastic anatomical wall) is the real fix and is on the plan.
+
+
 ## 0.6.1
 
 - **The `nasal` setting no longer leaks consonants through the nose.** It lowered the velum through

@@ -44,6 +44,7 @@ function voice(steps: [string, number][], params: Record<string, number> = {}, s
   let pl = 0;
   let lips = Infinity;
   let peak = 0;
+  let low = 0;
   for (let i = 0; i < n; i += 32) {
     if (next < steps.length && i >= steps[next][1] * SR) {
       v.setParam('phoneme', idx(steps[next][0]));
@@ -53,9 +54,11 @@ function voice(steps: [string, number][], params: Record<string, number> = {}, s
     v.process(l, r, i, Math.min(n, i + 32));
     pl = Math.min(pl, v.air.pLung / CM_H2O);
     lips = Math.min(lips, v.air.gridIn[v.air.nG - 1]);
-    peak = Math.max(peak, (v.air as unknown as { pSupra: number }).pSupra / CM_H2O);
+    const ps = (v.air as unknown as { pSupra: number }).pSupra / CM_H2O;
+    peak = Math.max(peak, ps);
+    if (lips > 0 && i > 0.3 * SR) low = Math.min(low, ps);
   }
-  return { l, pl, lips, peak };
+  return { l, pl, lips, peak, low };
 }
 
 function avgSpec(x: Float32Array, from: number, size = 8192): Float64Array {
@@ -135,14 +138,32 @@ describe('breathing and voicing', () => {
     expect(level).toBeLessThan(-20);
   });
 
+  it('releases /ɹdj/ ("Harvard Yard") without a click: no suction behind the closure', () => {
+    // a tongue moving toward /j/ during the /d/ grows the cavity; with the glottis sealed by voicing the
+    // mouth fell to -9.7 cmH2O and the release popped inward (75 times the line's median sharpness)
+    const { l, low } = voice([['ɑ', 0], ['ɹ', 0.25], ['d', 0.3], ['j', 0.36], ['ɑ', 0.42]], {}, 0.8, true, 199);
+    expect(low).toBeGreaterThan(-5);
+    const W = 96;
+    const d: number[] = [];
+    for (let i = W; i + W < l.length; i += W) {
+      let m = 0;
+      for (let j = i; j < i + W; j++) m = Math.max(m, Math.abs(l[j] - 2 * l[j - 1] + l[j - 2]));
+      d.push(m);
+    }
+    const sorted = d.slice().sort((a, b) => a - b);
+    expect(Math.max(...d) / sorted[sorted.length >> 1]).toBeLessThan(8);
+  });
+
   it('keeps voicing through a voiced closure, and slack cheeks keep more of it', () => {
-    const closure = (c: string, cheeks = 0) => {
+    const closure = (c: string, cheeks = 0, from = 0.52, to = 0.56) => {
       const { l } = voice([['ɑ', 0], [c, 0.45], ['ɑ', 0.58]], { cheeks }, 0.9, true, 110);
-      return lowDb(l, 0.52, 0.56) - lowDb(l, 0.3, 0.4);
+      return lowDb(l, from, to) - lowDb(l, 0.3, 0.4);
     };
+    // MEASURED late in a 130 ms closure: /b/ 11.7 dB over /p/ (the slight glottal opening that keeps the
+    // cavity from suction lets voicing fade, as English /b d g/ do), slack cheeks 16 dB more
     const b = closure('b');
-    expect(b - closure('p')).toBeGreaterThan(25);
-    expect(closure('b', 1) - b).toBeGreaterThan(2);
+    expect(b - closure('p')).toBeGreaterThan(8);
+    expect(closure('b', 1) - b).toBeGreaterThan(6);
   });
 });
 

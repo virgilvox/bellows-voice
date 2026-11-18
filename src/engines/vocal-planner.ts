@@ -150,9 +150,14 @@ for (let i = COUNT; i < SOUNDS; i++) MANNER[i] = M_BEAT;
 const P_SCHWA = VOCAL_TABLE_PHONEMES.indexOf('ə');
 /** The velar fricative [x], which the tables lack: /k/'s place with the dorsum this far down, by body (CHIMERA's inventory). */
 const X_TBY = [7.365, 7.43, 7.499];
-/** A voiced stop's cavity enlargement: the larynx lowered and the root advanced from schwa's (INFERRED). */
-const VOICED_EXPAND_LARYNX = 0.45;
-const VOICED_EXPAND_ROOT = 0.35;
+/**
+ * A voiced stop's glottal opening through its closure, cm^2 before k^2 (INFERRED): air keeps flowing in, so
+ * the cavity never falls below the atmosphere. The cost is Ohala's aerodynamic voicing constraint: the
+ * cavity fills and the folds' pressure drop falls, so voicing fades late in a long closure, as English
+ * /b d g/ often devoice. MEASURED at 0.02: /ɹdj/'s release from 75 to 13 times the line's median
+ * sharpness; /b/'s closure 0.02 more open than /p/'s voices strongly early and fades late.
+ */
+const VOICED_ABDUCTION = 0.02;
 for (let i = 0; i < COUNT; i++) {
   const d = VOCAL_INVENTORY[i];
   MANNER[i] = MANNER_CODE[d.manner];
@@ -602,14 +607,14 @@ export class VocalPlanner {
         }
         this.oral(idx, row, placed ? t0 + Math.min(0.025, Math.max(0, dur - 0.03)) : t0, t1, 1.55, RETURN_SPEED[idx]);
         if (VOICED[idx] === 1) {
-          // a voiced stop's closure enlarges the cavity behind it, so air keeps flowing through the
-          // folds and the voicing lasts: the larynx lowers and the tongue root advances (Westbury
-          // 1983, JASA 73, 1322-1336; Ohala's aerodynamic voicing constraint). The amounts are
-          // INFERRED, gated on the voice bar (test/engines-physical/anatomy.test.ts)
+          // a voiced stop's glottis parts a little through the closure: air keeps flowing in behind the
+          // seal, so a tongue moving toward the next
+          // sound cannot draw the mouth below the atmosphere and pop on release (MEASURED: /ɹdj/ in
+          // "Harvard Yard" fell to -9.7 cmH2O and clicked). VOICED_ABDUCTION is INFERRED, gated on the
+          // release and on the voice bar (test/engines-physical/anatomy.test.ts)
           this.begin();
-          this.key(ART.larynx, this.vowelT[P_SCHWA * ARTICULATORS + ART.larynx] - VOICED_EXPAND_LARYNX);
-          this.key(ART.root, this.vowelT[P_SCHWA * ARTICULATORS + ART.root] + VOICED_EXPAND_ROOT);
-          this.emit(t0 + 0.15 * dur, t1, 0.03, 0.04, 3, 0);
+          this.key(KEY_ABDUCTION, VOICED_ABDUCTION);
+          this.emit(t0 + 0.2 * dur, t1, 0.02, 0.03, 4, 0);
         }
       } else if (m === M_NASAL) this.oral(idx, row, t0, t1, 1.55, RETURN_SPEED[idx]);
       else if (m === M_TAP) this.oral(idx, row, t0, t1, 2.8, RETURN_SPEED[idx]);

@@ -4,7 +4,7 @@ State of bellows-voice as of 2026-11-17. Read this first when picking the work b
 
 ## Where things stand
 
-- **Published:** `bellows-voice@0.6.1` on npm, tagged `v0.6.1`, peer-depending on
+- **Published:** `bellows-voice@0.6.2` on npm, tagged `v0.6.2`, peer-depending on
   `bellowsjs >=0.5.0 <0.6.0`. CI (`.github/workflows/ci.yml`): typecheck, the generated plugin, the
   vocal tables and the calibrated vowels all checked current, 522 tests, build.
 - **0.6.0 (2026-11-17):** voice settings and anatomy (one table, `engines/vocal-settings.ts`), the
@@ -67,6 +67,12 @@ gates them.
 6. A new bellowsjs minor (0.6) needs the peer range here widened and a voice release.
 
 ## Traps
+
+- **Articulators move on schedule, so a closure can pull a vacuum.** The anatomical -dV/dt is an ideal
+  flow source: a tongue moving toward the next sound inside a voiced closure drew the mouth to -9.7
+  cmH2O and clicked (0.6.2). Gate closure pressure (anatomy.test.ts) whenever timing or voiced-stop
+  gestures change. An elastic drive (anatomy moving the wall's rest) was tried and made steps where a
+  junction's wall surface nears zero; do it with care.
 
 - **Side branches must be trapezoidal.** An explicit spring (the walls' scheme) on a 4 kHz branch
   blew up at 22.05 kHz; `dsp/side-branch.ts` has the passive form. The piriform fossae lower F1 by
