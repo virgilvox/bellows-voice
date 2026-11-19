@@ -22,7 +22,7 @@ describe('numbers, symbols and letters as words', () => {
 
   it('spells out a line, leaving IPA between slashes alone', () => {
     expect(spellOut('I have 3 cats')).toBe('I have three cats');
-    expect(spellOut('in 1984 & 2026')).toBe('in nineteen eighty four  and  twenty twenty six');
+    expect(spellOut('in 1984 & 2026')).toBe('in nineteen eighty four and twenty twenty six');
     expect(spellOut('$5.50 at 10:05, 50% off, the 21st')).toBe('five dollars and fifty cents at ten oh five, fifty percent off, the twenty first');
     expect(spellOut('pi is 3.14')).toBe('pi is three point one four');
     expect(spellOut('1,200 people')).toBe('one thousand two hundred people');
@@ -65,5 +65,33 @@ describe('the cases the 2026-11-17 audit found', () => {
   });
   it('keeps the reader\'s one-syllable "fire" and "hour" with the dictionary loaded', () => {
     expect(toIPA('fire hour', { dictionary: cmudict() })).toBe(toIPA('fire hour'));
+  });
+});
+
+describe('the cases the Fable audit found', () => {
+  it('reads a letter against a number, dimensions, money with scales and odd decimals', () => {
+    expect(spellOut('3D').trim()).toBe('three /ˈdi/');
+    expect(spellOut('B12').trim()).toBe('/ˈbi/ twelve');
+    expect(spellOut('4x4')).toBe('four by four');
+    expect(spellOut('$1.5 million')).toBe('one point five million dollars');
+    expect(spellOut('$5.5')).toBe('five point five dollars');
+  });
+  it('reads ordinals with separators and plurals of any number', () => {
+    expect(spellOut('1,000th')).toBe('one thousandth');
+    expect(spellOut('1000s of them')).toBe('one thousands of them');
+    expect(spellOut('two 5s')).toBe('two fives');
+  });
+  it('keeps a sentence\'s full stop after a.m. or a dotted initialism, and not "Am"', () => {
+    expect(spellOut('It was 5 a.m. It rained.')).toBe('It was five /eɪ.ˈɛm/. It rained.');
+    expect(spellOut('the U.S. It is big')).toBe('the /ju.ˈɛs/. It is big');
+    expect(spellOut('5 Am I')).toBe('five Am I');
+  });
+  it('says abbreviations and version numbers, and leaves lines in capitals and interjections as words', () => {
+    expect(spellOut('Mr. Smith and Dr. No, e.g. this')).toBe('mister Smith and doctor No, for example this');
+    expect(spellOut('version 1.2.3')).toBe('version one point two point three');
+    expect(spellOut('LA LA LA')).toBe('LA LA LA');
+    expect(spellOut('DO IT NOW')).toBe('DO IT NOW');
+    expect(spellOut('HMM, SHH')).toBe('HMM, SHH');
+    expect(spellOut('FBI CIA')).toBe('/ɛf.bi.ˈaɪ/ /si.aɪ.ˈeɪ/');
   });
 });

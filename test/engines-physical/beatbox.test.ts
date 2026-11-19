@@ -182,3 +182,44 @@ describe('the close microphone moved mid-note', () => {
     expect(late).toBeLessThan(0.01 * peak);
   });
 });
+
+describe('a hum through its step', () => {
+  it('sounds to the end of its step before a rest or another hum, and stops early only before a kick', () => {
+    const SR3 = 48000;
+    const tail = (after: string, from = 0.41) => {
+      const v = vocalEngine.createVoice(SR3, { ...defaultParams(vocalEngine) }, rng('hum')) as unknown as {
+        setParam(k: string, x: number): void; noteOn(f: number, v: number): void; process(l: Float32Array, r: Float32Array, a: number, b: number): void;
+      };
+      const steps: [string, number][] = [['.', 0], ['m', 0.25], [after, 0.5]];
+      v.setParam('phoneme', vocalBeatIndex('.'));
+      v.noteOn(98, 0.8);
+      let next = 1;
+      const ann = (i: number) => {
+        if (!steps[next]) return;
+        v.setParam('nextIn', Math.max(0, steps[next][1] - i / SR3));
+        v.setParam('nextPhoneme', vocalBeatIndex(steps[next][0]));
+      };
+      ann(0);
+      const n = Math.round(0.5 * SR3);
+      const l = new Float32Array(n);
+      const r = new Float32Array(n);
+      for (let i = 0; i < n; i += 32) {
+        if (next < steps.length && i >= steps[next][1] * SR3) {
+          v.setParam('phoneme', vocalBeatIndex(steps[next][0]));
+          next++;
+          ann(i);
+        }
+        v.process(l, r, i, i + 32);
+      }
+      // the hum's middle against the 60 ms before its own end (0.92 of the step, at 0.48 s)
+      const mid = rms(l.subarray(Math.round(0.33 * SR3), Math.round(0.39 * SR3)));
+      const end = rms(l.subarray(Math.round(from * SR3), Math.round((from + 0.06) * SR3)));
+      return end / mid;
+    };
+    // MEASURED (Fable audit): with the velum always handed back 150 ms early, the last 75 ms fell near silent
+    expect(tail('.')).toBeGreaterThan(0.5);
+    // before another hum, up to that hum's own onset (its folds part from 80 ms before its step)
+    expect(tail('m', 0.35)).toBeGreaterThan(0.5);
+    expect(tail('B')).toBeLessThan(0.5);
+  });
+});

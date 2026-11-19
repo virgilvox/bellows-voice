@@ -105,34 +105,66 @@ export function spellOut(text: string): string {
     .join('');
 }
 
+/* Abbreviations a reader says as words; their full stop is not a sentence's end. */
+const ABBREVIATIONS: ReadonlyArray<[RegExp, string]> = [
+  [/\bMrs\./g, 'missus'], [/\bMr\./g, 'mister'], [/\bMs\./g, 'miz'], [/\bDr\./g, 'doctor'], [/\bProf\./g, 'professor'],
+  [/\bSt\.(?=\s+[A-Z])/g, 'saint'], [/\be\.g\./gi, 'for example'], [/\bi\.e\./gi, 'that is'], [/\betc\./gi, 'et cetera'],
+  [/\bvs\./gi, 'versus'],
+];
+/* Capitals that are sounds, not letters: never spelled. */
+const INTERJECTIONS = new Set(['HMM', 'HM', 'MM', 'MMM', 'SHH', 'SH', 'PSST', 'BRR', 'TSK', 'ZZZ', 'GRR', 'PFFT', 'PFF', 'HMPH']);
+/* A sentence's full stop that a rule swallowed, given back before a capital or at the end. */
+const keepStop = (str: string, end: number) => (/^\s*($|[A-Z])/.test(str.slice(end)) ? '.' : '');
+/* A meridiem: am, a.m., AM, A.M. (not "Am"). */
+const MERIDIEM = String.raw`(?:([ap])\.?m\b(\.)?|([AP])\.?M\b(\.)?)`;
+
 function spellPart(s: string): string {
+  for (const [re, said] of ABBREVIATIONS) s = s.replace(re, said);
   return (
     s
       .replace(/&/g, ' and ')
       // a minus sign before a number: -5, (−3)
       .replace(/(^|[\s(])[-−](?=\d)/g, '$1minus ')
-      // dotted initialisms: U.S., U.K., a.m. is below
-      .replace(/(?<![\p{L}.])((?:[A-Z]\.){2,})(?=[^\p{L}]|$)/gu, (w: string) => letters(w.replace(/\./g, '')))
+      // dotted initialisms: U.S., U.K.; a sentence's full stop after one is kept
+      .replace(/(?<![\p{L}.])((?:[A-Z]\.){2,})(?=[^\p{L}]|$)/gu, (w: string, _c: string, at: number, str: string) =>
+        letters(w.replace(/\./g, '')) + keepStop(str, at + w.length),
+      )
+      // version numbers: 1.2.3
+      .replace(/\b\d+(?:\.\d+){2,}\b/g, (d: string) => d.split('.').map((x) => number(x)).join(' point '))
+      // money with a scale: $1.5 million
+      .replace(/\$(\d+(?:\.\d+)?)\s+(thousand|million|billion|trillion)\b/gi, (_, d: string, sc: string) => `${number(d)} ${sc.toLowerCase()} dollars`)
       // money: $5, $5.50, $1,200
-      .replace(/\$(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{2}))?\b/g, (_, d: string, c?: string) => {
+      .replace(/\$(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{2}))?(?![\d.,]*\d)/g, (_, d: string, c?: string) => {
         const dollars = Number(d.replace(/,/g, ''));
         const say = `${cardinal(dollars)} ${dollars === 1 ? 'dollar' : 'dollars'}`;
         const cents = c ? Number(c) : 0;
         const c$ = `${cardinal(cents)} ${cents === 1 ? 'cent' : 'cents'}`;
         return cents ? (dollars === 0 ? c$ : `${say} and ${c$}`) : say;
       })
+      // any other amount: $5.5, $0.125
+      .replace(/\$(\d+(?:\.\d+)?)/g, (_, d: string) => `${number(d)} dollars`)
       // clock times: 10:30, 9:05, 10:00, 3pm, 7:30 a.m.
-      .replace(/\b(\d{1,2})(?::(\d{2}))?\s?([ap])\.?m\b\.?/gi, (_, h: string, m: string | undefined, ap: string) =>
-        `${clock(h, m, true)} ${letters(ap.toUpperCase() + 'M')}`,
-      )
+      .replace(new RegExp(String.raw`\b(\d{1,2})(?::(\d{2}))?[ \t]?` + MERIDIEM, 'g'), (w: string, h: string, m: string | undefined, a1?: string, d1?: string, a2?: string, d2?: string, ...rest: unknown[]) => {
+        const at = rest[rest.length - 2] as number;
+        const str = rest[rest.length - 1] as string;
+        const ap = (a1 ?? a2 ?? 'a').toUpperCase();
+        return `${clock(h, m, true)} ${letters(ap + 'M')}${d1 || d2 ? keepStop(str, at + w.length) : ''}`;
+      })
       .replace(/\b(\d{1,2}):(\d{2})\b/g, (_, h: string, m: string) => clock(h, m, false))
-      // ordinals: 1st, 22nd, 103rd, 4th
-      .replace(/\b(\d+)(st|nd|rd|th)\b/gi, (_, d: string) => ordinal(Number(d)))
-      // decades and plurals of numbers: 1990s, '90s, 90s, 1900s
-      .replace(/'?\b(\d{2}|\d{4})'?s\b/g, (_, d: string) => plural(d.length === 4 ? year(Number(d)) : cardinal(Number(d))))
+      // ordinals: 1st, 22nd, 103rd, 4th, 1,000th
+      .replace(/\b(\d{1,3}(?:,\d{3})+|\d+)(st|nd|rd|th)\b/gi, (_, d: string) => ordinal(Number(d.replace(/,/g, ''))))
+      // decades and plurals of numbers: 1990s, '90s, 90s, 1900s, 100s, 5s
+      .replace(/'?\b(\d+)'?s\b/g, (_, d: string) => {
+        const n = Number(d);
+        return plural(d.length === 4 && n >= 1100 && n <= 2099 ? year(n) : cardinal(n));
+      })
       // percentages
       .replace(/\b(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)%/g, (_, d: string) => `${number(d)} percent`)
-      // a number against letters ("MP3", "4x4", "A1") is still a number
+      // dimensions: 4x4
+      .replace(/(\d)\s?x\s?(?=\d)/g, '$1 by ')
+      // a single letter against a number is a letter name ("3D", "B12", "R2D2")
+      .replace(/(?<!\p{L})([A-Za-z])(?=\d)|(?<=\d)([A-Za-z])(?!\p{L})/gu, (_, a?: string, b?: string) => ` ${letters((a ?? b ?? '').toUpperCase())} `)
+      // a number against letters ("MP3") is still a number
       .replace(/(\p{L})(?=\d)/gu, '$1 ')
       .replace(/(\d)(?=\p{L})/gu, '$1 ')
       // decimals and numbers with thousands separators
@@ -140,11 +172,27 @@ function spellPart(s: string): string {
         if (/^\d{4}$/.test(d) && Number(d) >= 1100 && Number(d) <= 2099) return year(Number(d));
         return number(d);
       })
-      // initialisms: capitals with no vowel letter, or the common ones that have one; "TVs", "DJ's"
-      .replace(/\b([A-Z]{2,6})('?s)?\b/g, (w: string, caps: string, pl?: string) =>
-        !VOWEL_LETTER.test(caps) || INITIALISMS.has(caps) ? letters(caps, pl ? 'z' : '') : w,
-      )
+      // initialisms: capitals with no vowel letter, or the common ones that have one; "TVs", "DJ's".
+      // In a line of capitals ("LA LA LA", "DO IT NOW") only the ones with no vowel letter are spelled
+      .replace(/\b([A-Z]{2,6})('?s)?\b/g, (w: string, caps: string, pl: string | undefined, at: number, str: string) => {
+        if (INTERJECTIONS.has(caps)) return w;
+        const shouted = capsNeighbour(str, at, at + w.length);
+        return !VOWEL_LETTER.test(caps) || (!shouted && INITIALISMS.has(caps)) ? letters(caps, pl ? 'z' : '') : w;
+      })
+      .replace(/ {2,}/g, ' ')
   );
+}
+
+/** Whether the word before or after [from, to) is also in capitals (a line in capitals). */
+function capsNeighbour(str: string, from: number, to: number): boolean {
+  const before = /([A-Za-z']+)[^A-Za-z]*$/.exec(str.slice(0, from))?.[1];
+  const after = /^[^A-Za-z]*([A-Za-z']+)/.exec(str.slice(to))?.[1];
+  const self = str.slice(from, to);
+  // a neighbour in capitals that reads as a word ("DO", "NOW"), or the same word again ("LA LA LA");
+  // another initialism ("FBI CIA") is not shouting
+  const caps = (w?: string) =>
+    !!w && w.length > 1 && w === w.toUpperCase() && VOWEL_LETTER.test(w) && (!INITIALISMS.has(w) || w === self);
+  return caps(before) || caps(after);
 }
 
 /** A clock time: "ten thirty", "nine oh five", "ten o'clock" (or plain "ten" before a.m. or p.m.). */

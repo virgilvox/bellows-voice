@@ -4,9 +4,11 @@ State of bellows-voice as of 2026-11-17. Read this first when picking the work b
 
 ## Where things stand
 
-- **Published:** `bellows-voice@0.7.2` on npm, tagged `v0.7.2`, peer-depending on
+- **Published:** `bellows-voice@0.7.3` on npm, tagged `v0.7.3`, peer-depending on
   `bellowsjs >=0.5.0 <0.6.0`. CI (`.github/workflows/ci.yml`): typecheck, the generated plugin, the
   vocal tables, the calibrated vowels and the dictionary all checked current, the test suite, build.
+- **0.7.3 (2026-11-19):** a second audit's fixes: hums no longer chopped by the 0.7.2 kick fix, and
+  more of spellOut (letters against numbers, abbreviations, kept full stops, lines in capitals).
 - **0.7.2 (2026-11-17):** the fixes from a full audit (CHANGELOG), and a two-rate lungs' end
   (`lungTwoRate`, off: three gates still out after the first refit, HOW-IT-WORKS 13). Known and left:
   a kick within about 0.2 s of a hum still leaks (the velum's speed); an accent moves the ejectives

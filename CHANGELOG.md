@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.3
+
+From a second audit (a Fable review of 0.7.2):
+
+- **Hums sound their whole step again.** 0.7.2 handed the velum back 150 ms early before every
+  step, so "m m m" was chopped and a hum before a rest went silent for its last 75 ms. Only a hum
+  followed by a pressure sound does that now (the planner passes the next step), and only the
+  ejectives (kick, rimshot) close the velum from 100 ms ahead; a rest closes nothing.
+- **Numbers and letters:** a letter against a number is its name ("3D", "B12", "R2D2"); "4x4" is four
+  by four; "$1.5 million" and "$5.5" are read whole; "1,000th"; plurals of any number ("1000s",
+  "5s"); a sentence's full stop after "a.m." or "U.S." is kept, and "Am" is not a time; Mr., Mrs.,
+  Ms., Dr., Prof., St. before a name, e.g., i.e., etc. and vs. are said as words; version numbers
+  ("1.2.3"); a line in capitals ("LA LA LA", "DO IT NOW") and sounds like "HMM" or "SHH" are not spelled.
+
+
 ## 0.7.2
 
 An audit of everything since 0.5.0 (four independent reviews, every finding checked before a fix).

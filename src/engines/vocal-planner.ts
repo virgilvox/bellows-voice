@@ -581,7 +581,9 @@ export class VocalPlanner {
       if (m === M_VOWEL || m === M_SILENCE) continue;
       if (m === M_BEAT) {
         const t1b = this.t1(s);
-        writeBeatScore(this, idx - COUNT, this.segT0[s], t1b < Infinity ? t1b - this.segT0[s] : 0.25, s === 0);
+        // what follows, when known: a hum hands the velum back early only before a sound that needs a sealed mouth
+        const nx = s + 1 < n && MANNER[this.segIdx[s + 1]] === M_BEAT ? this.segIdx[s + 1] - COUNT : -1;
+        writeBeatScore(this, idx - COUNT, this.segT0[s], t1b < Infinity ? t1b - this.segT0[s] : 0.25, s === 0, nx);
         continue;
       }
       const before = this.gCount;

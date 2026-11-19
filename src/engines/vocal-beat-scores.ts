@@ -70,8 +70,9 @@ const P_M = VOCAL_TABLE_PHONEMES.indexOf('m');
  * A beat's gestures, its acoustic hit at h: CHIMERA's scores (phonetics/beatbox.rs), each sound a
  * short score on the tract with the airstream beatboxers use. `len` is the time to the next step,
  * which a sustained sound may fill. `first`: the line's first sound, whose ready posture starts early.
+ * `next`: the following step's slot when it is a beat, else -1.
  */
-export function writeBeatScore(w: BeatWriter, slot: number, h: number, len: number, first: boolean): void {
+export function writeBeatScore(w: BeatWriter, slot: number, h: number, len: number, first: boolean, next = -1): void {
   const b = slot >> 1;
   const accent = (slot & 1) === 1 ? 1.3 : 1;
   const hum = b === B_HUM || b === B_IN;
@@ -87,13 +88,15 @@ export function writeBeatScore(w: BeatWriter, slot: number, h: number, len: numb
     w.key(k, v);
   }
   w.emit(first ? h - 0.15 : h, h + len, 0.03, 0.03, 1, 0);
-  if (!hum) {
-    // the velum shut, so the pressure a sound builds stays in the mouth: from before the ejective's
-    // piston (75 ms) and stronger than a hum's lowered velum, which a kick straight after a hum
-    // otherwise leaked through the nose (MEASURED: 1.8 cmH2O against 19.4 after a rest)
+  if (!hum && b !== 0) {
+    // the velum shut, so the pressure a sound builds stays in the mouth. An ejective's piston rises
+    // from 75 ms before its hit, so for those it shuts from 100 ms, stronger than a hum's lowered velum
+    // (MEASURED: a kick straight after a hum reached 1.8 cmH2O against 19.4 after a rest); a rest
+    // shuts nothing, or it would cut the hum before it short
+    const eject = b === B_KICK || b === B_RIM;
     w.begin();
     w.key(ART.velum, w.schwaTarget(ART.velum));
-    w.emit(first ? h - 0.15 : h - 0.1, h + len, 0.03, 0.03, 8, 0);
+    w.emit(first ? h - 0.15 : eject ? h - 0.1 : h - 0.02, h + len, 0.03, 0.03, eject ? 8 : 4, 0);
   }
   if (b === B_KICK) {
     w.beatOral(P_P, h - 0.075, h, 2, 3.5, 0.01, NaN, false, ART.jaw, 0.3, -1, 0, false);
@@ -164,7 +167,11 @@ export function writeBeatScore(w: BeatWriter, slot: number, h: number, len: numb
     // piston ran with the port still open and a kick after a hum reached 1.6 cmH2O against 19.4)
     w.begin();
     w.key(ART.velum, 0.9);
-    w.emit(h - 0.02, h + Math.max(0.05, Math.min(end, len - 0.15)), 0.03, 0.03, 4, 0);
+    // only before a sound that builds pressure in a sealed mouth: before a rest, another hum or a breath
+    // the hum sounds its whole step (Fable audit: "m m m" was chopped to its first 75 ms at 0.167 s)
+    const nb = next >> 1;
+    const sealed = next >= 0 && nb > 0 && nb !== B_HUM && nb !== B_IN;
+    w.emit(h - 0.02, h + (sealed ? Math.max(0.05, Math.min(end, len - 0.15)) : end), 0.03, 0.03, 4, 0);
     w.begin();
     w.key(KEY_ABDUCTION, 0.3);
     w.emit(h - 0.08, h - 0.03, 0.02, 0.02, 5, 0);
