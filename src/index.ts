@@ -11,7 +11,8 @@
  * `voice` is the plugin: the engine, prebuilt for the worklet, so a page that does not sing never
  * loads it. `singer()` plans lines and posts them through bellows' host API. The text layer is also
  * exported alone from 'bellows-voice/text', and the engine itself, for renderOffline and Node, from
- * 'bellows-voice/engine'.
+ * 'bellows-voice/engine' (with renderSpeech, text to samples and articulators without an
+ * AudioContext). articulatorProbe() reads the articulators of a singer as it plays.
  */
 
 export { voice, VOCAL_ENGINE_INFO } from './plugin';
@@ -27,6 +28,18 @@ export {
 } from './singer';
 export { VOICE_PRESETS, SPEECH_HZ_BY_BODY, voicePreset, speechHzForBody, type VoicePreset, type VoiceGroup } from './voices';
 export { sungEvents, type SungEventOptions, type SungEvents, type SungWindow } from './sing';
+export { articulatorProbe, type ArticulatorProbe, type ArticulatorProbeOptions, type ProbeTarget } from './probe/probe';
+export {
+  ARTICULATOR_PROBE_VERSION,
+  ARTICULATOR_FIELDS,
+  FRAME_STRIDE,
+  PROBE_SLOTS,
+  PROBE_MAX_RATE,
+  decodeFrame,
+  probePhonemeName,
+  type ArticulatorFrame,
+  type ArticulatorField,
+} from './probe/frame';
 export * from './text';
 
 /* the lead the planner needs, from a small module that carries no DSP */

@@ -5,6 +5,8 @@
  */
 
 export { registerVoice } from './register';
+export { renderSpeech, type RenderSpeechOptions, type SpeechRender } from './offline';
+export { ARTICULATOR_PROBE_VERSION, ARTICULATOR_FIELDS, decodeFrame, type ArticulatorFrame } from './probe/frame';
 export { vocalEngine } from './engines/vocal';
 export { VOCAL_PHONEMES, vocalPhonemeIndex, type VocalPhoneme } from './engines/vocal-phonemes';
 export * from './dsp/glottal';

@@ -1,0 +1,82 @@
+<!doctype html>
+<!--
+  A face that moves with the voice, from the articulator probe.
+
+    npm run build
+    npx serve .            (any static server at the repository root)
+    open http://localhost:3000/examples/face.html
+
+  The page imports the built package from ../dist; a page of your own imports it from npm or a CDN
+  the same way. It needs no cross-origin isolation: without it the probe sends frames through the
+  worklet node's port.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>bellows-voice face</title>
+  <style>
+    body { font: 15px system-ui, sans-serif; margin: 2rem auto; max-width: 36rem; padding: 0 1rem; background: #fafaf7; color: #222; }
+    canvas { display: block; width: 100%; max-width: 360px; aspect-ratio: 1; background: #fff; border: 1px solid #ddd; }
+    input { width: 100%; box-sizing: border-box; padding: 0.4rem; font: inherit; }
+    pre { font-size: 13px; min-height: 4.5em; }
+  </style>
+  <script type="importmap">
+    { "imports": { "bellowsjs": "https://cdn.jsdelivr.net/npm/bellowsjs@0.5/dist/bellows.js" } }
+  </script>
+</head>
+<body>
+  <p><input id="text" value="Shall we meet at noon? Five past twelve, by the fountain."></p>
+  <p><button id="say">Speak</button></p>
+  <canvas id="face" width="360" height="360"></canvas>
+  <pre id="readout"></pre>
+  <script type="module">
+    import { Bellows } from 'bellowsjs';
+    import { voice, singer, articulatorProbe } from '../dist/index.js';
+
+    let b, v, probe;
+    const canvas = document.getElementById('face');
+    const g = canvas.getContext('2d');
+    const readout = document.getElementById('readout');
+
+    document.getElementById('say').onclick = async () => {
+      if (!b) {
+        b = await Bellows.boot({ plugins: [voice] });
+        v = singer(b, 'narrator-female');
+        probe = articulatorProbe(b, v, { rate: 60 });
+        requestAnimationFrame(draw);
+      }
+      v.speak(document.getElementById('text').value);
+    };
+
+    const frame = {};
+    function draw() {
+      const f = probe.heard(frame);
+      g.clearRect(0, 0, 360, 360);
+      g.lineWidth = 3;
+      g.strokeStyle = '#333';
+      // head and eyes
+      g.beginPath(); g.ellipse(180, 170, 130, 150, 0, 0, 2 * Math.PI); g.stroke();
+      g.beginPath(); g.arc(130, 130, 8, 0, 2 * Math.PI); g.arc(230, 130, 8, 0, 2 * Math.PI); g.fill();
+      if (f) {
+        // jaw drops the lower lip; lip aperture opens the mouth; protrusion narrows it; lipWidth spreads it
+        const jaw = Math.max(0, f.jaw) * 14;
+        const open = Math.max(0, f.lipAperture) * 12 + jaw * 0.4;
+        const width = 34 + 26 * f.lipWidth - 22 * Math.min(1, f.lipProtrusion / 1.4);
+        const y = 245 + jaw * 0.5;
+        g.fillStyle = f.velum > 0.05 ? '#8a3b3b' : '#5a1f1f';
+        g.beginPath(); g.ellipse(180, y, width, Math.max(1.5, open / 2), 0, 0, 2 * Math.PI); g.fill(); g.stroke();
+        // the lower lip tucks under the teeth for f and v
+        if (f.labiodental > 0.3) { g.fillStyle = '#eee'; g.fillRect(180 - width * 0.6, y - 4, width * 1.2, 5); }
+        g.fillStyle = '#333';
+        readout.textContent =
+          `${f.sounding ? 'sounding' : 'quiet'}  ${f.phoneme || '-'}\n` +
+          `jaw ${f.jaw.toFixed(2)} cm  lips ${f.lipAperture.toFixed(2)} cm  rounding ${f.lipProtrusion.toFixed(2)} cm\n` +
+          `tongue tip ${f.tongueTipX.toFixed(2)}, ${f.tongueTipY.toFixed(2)} cm  velum ${f.velum.toFixed(2)} cm²  voicing ${f.glottal.toFixed(2)}\n` +
+          `${probe.transport} transport, ${probe.count} frames`;
+      }
+      requestAnimationFrame(draw);
+    }
+  </script>
+</body>
+</html>

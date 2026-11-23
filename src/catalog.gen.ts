@@ -241,6 +241,12 @@ export const VOCAL_ENGINE_INFO: EngineInfo = {
       "min": 0,
       "max": 81,
       "default": 0
+    },
+    {
+      "name": "probe",
+      "min": 0,
+      "max": 8,
+      "default": 0
     }
   ],
   "polyphony": 8

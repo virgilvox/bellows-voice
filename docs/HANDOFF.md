@@ -7,6 +7,11 @@ State of bellows-voice as of 2026-11-17. Read this first when picking the work b
 - **Published:** `bellows-voice@0.7.3` on npm, tagged `v0.7.3`, peer-depending on
   `bellowsjs >=0.5.0 <0.6.0`. CI (`.github/workflows/ci.yml`): typecheck, the generated plugin, the
   vocal tables, the calibrated vowels and the dictionary all checked current, the test suite, build.
+- **0.8.0 (2026-11-23, on main, not yet on npm):** the articulator probe (`articulatorProbe()`,
+  `src/probe/`, the engine's `probe` param) and offline speech (`renderSpeech()` in
+  `bellows-voice/engine`), HOW-IT-WORKS 14. The site's voice lab lists every engine param it does not
+  drive (`apps/workbench/src/components/code/VoiceLab.vue`, `DRIVEN`): add `probe` there when it
+  takes 0.8, or it shows as a slider.
 - **0.7.3 (2026-11-19):** a second audit's fixes: hums no longer chopped by the 0.7.2 kick fix, and
   more of spellOut (letters against numbers, abbreviations, kept full stops, lines in capitals).
 - **0.7.2 (2026-11-17):** the fixes from a full audit (CHANGELOG), and a two-rate lungs' end
@@ -45,8 +50,11 @@ State of bellows-voice as of 2026-11-17. Read this first when picking the work b
   `src/worklet-code.gen.ts` and `src/catalog.gen.ts`.
 - `src/view`: `TractModel`, the mouth for a UI (`bellows-voice/view`).
 - `src/dict`: the CMU dictionary as the residual of the reader's mistakes (`bellows-voice/dict`).
-- Entries: `bellows-voice` (plugin, singer, text, presets), `/text` (no audio, no bellows), `/engine`
-  (`registerVoice()` for `renderOffline`), `/view`, `/worklet.js`.
+- `src/probe`: the articulator probe: the frame layout and ring (`frame.ts`), the engine's tap
+  (`tap.ts`), the per-quantum sampler (`sampler.ts`), the worklet processor (`processor.ts`) and
+  `articulatorProbe()` (`probe.ts`). `src/offline.ts`: `renderSpeech()`.
+- Entries: `bellows-voice` (plugin, singer, text, presets, probe), `/text` (no audio, no bellows),
+  `/engine` (`registerVoice()` for `renderOffline`, `renderSpeech()`), `/view`, `/worklet.js`.
 
 ## The science, and what it gates
 

@@ -170,6 +170,52 @@ shape's first three resonances.
 ejective and the velum down for the hum, and `shape().constriction` is the narrowest point, where the
 sound is made.
 
+## Watching the mouth as it speaks
+
+`articulatorProbe(b, singer)` reads the voice's articulators as the audio plays, for a host that
+animates a face, draws the tract or records the motion in time with what is heard:
+
+```js
+import { voice, singer, articulatorProbe } from 'bellows-voice';
+
+const b = await Bellows.boot({ plugins: [voice] });
+const v = singer(b, 'narrator-female');
+const probe = articulatorProbe(b, v, { rate: 60 });   // frames per second, 1 to 375
+v.speak('Shall we meet at noon?');
+
+function draw() {
+  const f = probe.heard();      // the frame playing out of the speakers now
+  if (f) {
+    face.jawOpen = f.jaw / 2;                 // cm of jaw opening
+    face.lipsClosed = f.lipAperture <= 0;     // cm; under 0 is pressed shut
+    face.pucker = f.lipProtrusion / 1.4;
+    face.caption = f.phoneme;                 // IPA, '' before any sound
+  }
+  requestAnimationFrame(draw);
+}
+draw();
+```
+
+Each frame has `time` (AudioContext seconds), `sounding`, `phoneme` and `phonemeIndex`, `glottal`
+(voicing amplitude), `jaw`, `lipAperture`, `lipProtrusion`, `lipWidth`, `labiodental`, `tongueBodyX`,
+`tongueBodyY`, `tongueTipX`, `tongueTipY` and `velum`, in the articulators' own units (centimetres,
+the velum in cm²; `src/probe/frame.ts` has each). They are the state the engine is sounding, not
+the plan: the mouth moves before a sound as the engine's planner moves it (a stop closes 22 to 31 ms
+early), and between the engine's 10.7 ms keyframes the values are interpolated as the tract's shape
+is. A frame is read after the render quantum it describes and stamped with that quantum's end, so
+`probe.at(t)` gives the state at any context time `t`, and `probe.heard()` gives it at
+`getOutputTimestamp().contextTime`, which is what is coming out of the speakers.
+
+Frames arrive one message per frame through the node's port, which works anywhere, including a page
+opened from `file://`. On a cross-origin isolated page they go through a SharedArrayBuffer instead
+and no message is sent (`transport: 'shared'` asks for that, `'port'` forbids it, `'auto'` is the
+default). The last `capacity` frames (default 256) are kept for `at()` and `frames(since)`.
+`probe.stop()` ends it. Up to eight probes run on one context.
+
+With no probe the engine does one comparison per process call and nothing is sent. With one, the
+voice writes 13 numbers per process call and the probe's processor reads them once per render
+quantum (about 0.1 µs). `ARTICULATOR_PROBE_VERSION` (1) changes only if the frame layout does.
+
 ## Rendering
 
 `b.render()` renders through the worklet with the plugin loaded, exactly as it plays. To render with `renderOffline()` or in Node without a worklet, register the engine on that thread:
@@ -180,6 +226,27 @@ import { registerVoice } from 'bellows-voice/engine';
 registerBuiltins();
 registerVoice();
 ```
+
+### Speech to a file, with its timing and its mouth
+
+`renderSpeech()` renders text without an AudioContext, in Node, a worker or a page: the samples, the
+timed phoneme spans (as `speak()` returns them), and the articulator track at the frame times the live
+probe uses. The same seed gives the same bytes.
+
+```js
+import { renderSpeech } from 'bellows-voice/engine';
+
+const out = renderSpeech('Shall we meet at noon?', { voice: 'narrator-female', seed: 'take-1', frameRate: 60 });
+out.samples;     // Float32Array, mono, out.sampleRate (48000)
+out.wav();       // ArrayBuffer, 16-bit WAV (wav(24) or wav(32) for float)
+out.spans;       // [{ ipa: 'ʃ', start: 0, end: 0.12, kind: 'onset' }, ...] in seconds
+out.track;       // [{ time, sounding, phoneme, jaw, lipAperture, ... }, ...] frameRate per second
+```
+
+It takes `speak()`'s options (`accent`, `hz`, `rate`, `dictionary`, `breath`, `numbers`,
+`allophones`) and `voice` (params or a starter voice), `seed`, `sampleRate`, `at` and `tail`.
+`examples/render-speech.mjs` writes a WAV and a JSON of the spans and track; `examples/face.html`
+draws a face from a live probe.
 
 ## Pronunciations
 

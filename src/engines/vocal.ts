@@ -90,6 +90,10 @@
  * 2 CHIMERA's drawn pulse, the default; a sounding voice changes at its
  * next note; docs/VOICE-2.md, "Vocal folds", has the measurements).
  *
+ * probe (a slot, 0 off) makes the voice leave its articulators, sound and
+ * voicing where the articulator probe reads them (probe/tap.ts), once per
+ * process call; with it off the voice does one comparison per call.
+ *
  * Randomness: forks 'glottis' and 'noise' (in the airway: the fold pulse's
  * perturbations, and one turbulence seed drawn per note) and 'vibrato' (the
  * vibrato's starting phase, drawn per note).
@@ -111,6 +115,8 @@ import { ARTICULATOR_MAX, ARTICULATOR_RATE, ARTICULATOR_TARGET_MIN, LIP_COMPRESS
 import { VocalRoof } from './vocal-roof';
 import { VOCAL_KEY_BLOCKS, VocalDrive } from './vocal-drive';
 import { VOCAL_GLIDE_DEFAULTS, vocalDamping, vocalGlideSpeed } from './vocal-lead';
+import { F, FRAME_STRIDE, PROBE_SLOTS } from '../probe/frame';
+import { PROBE_ARTICULATORS, PROBE_TAP } from '../probe/tap';
 
 export { VOCAL_PLAN_LEAD, vocalDamping, vocalGlideLead, vocalGlideSpeed } from './vocal-lead';
 
@@ -193,6 +199,9 @@ class VocalVoice implements Voice {
   private readonly stepEvery: number = 0;
   private readonly keyEvery: number = 0;
   private readonly envBuf: Float32Array;
+  /** The probe slot this voice reports to (probe/tap.ts), 0 for none, and the keyframe its interval left. */
+  private probeSlot = 0;
+  private readonly keyFrom = new Float64Array(ARTICULATORS);
 
   /* Scratch. */
   private readonly art = new Float64Array(ARTICULATORS);
@@ -451,7 +460,16 @@ class VocalVoice implements Voice {
       case 'tuning':
         this.tuning = clamp(value, 0, 1);
         return;
+      case 'probe':
+        this.setProbe(clamp(Math.round(value), 0, PROBE_SLOTS));
+        return;
     }
+  }
+
+  /** Report to probe slot `slot` (0 stops), from the keyframe the tract is at now. */
+  private setProbe(slot: number): void {
+    if (slot !== 0 && this.probeSlot === 0) this.keyFrom.set(this.art);
+    this.probeSlot = slot;
   }
 
   /** 0 geometric, 1 self-oscillating, 2 the parametric pulse; a voice that is sounding changes at its next note. */
@@ -494,6 +512,7 @@ class VocalVoice implements Voice {
     const air = this.air;
     const blk = this.blk;
     let i = from;
+    let last = 0;
     while (i < to) {
       if (this.bi === blk) {
         if (this.intervalLeft === 0) this.interval();
@@ -504,12 +523,14 @@ class VocalVoice implements Voice {
       const n = left < to - i ? left : to - i;
       const eb = this.envBuf;
       this.env.fill(eb, 0, n);
+      last = n;
       air.render(outL, outR, i, n, this.bi, eb);
       this.bi += n;
       this.pos += n;
       this.intervalLeft -= n;
       i += n;
     }
+    if (this.probeSlot !== 0 && last > 0) this.probeWrite(this.envBuf[last - 1]);
     if (to > from) this.fresh = false;
     if (!this.env.active) this.live = false;
   }
@@ -608,6 +629,7 @@ class VocalVoice implements Voice {
       for (let i = 0; i < ARTICULATORS; i++) bank.snap(i, bank.values[i]);
     }
     this.art.set(bank.values);
+    this.keyFrom.set(this.art);
     this.drive.key(this.art, true);
     this.updateGlottis();
     for (let q = 0; q <= STEPS; q++) {
@@ -763,9 +785,30 @@ class VocalVoice implements Voice {
     bank.placeFrom(iy, pl, 1);
   }
 
+  /**
+   * The probe's row (probe/tap.ts): the sound, the voicing at the envelope's level `env`, and the
+   * articulators where the tract's shape is now, between the keyframe the interval started from and
+   * the one it moves to, as the drive interpolates them.
+   */
+  private probeWrite(env: number): void {
+    const t = PROBE_TAP;
+    const o = (this.probeSlot - 1) * FRAME_STRIDE;
+    const u = this.blockInInterval / VOCAL_KEY_BLOCKS;
+    const a = this.art;
+    const f = this.keyFrom;
+    t[o] += 1;
+    t[o + F.phoneme] = this.phonemeParam;
+    t[o + F.glottal] = this.air.voicing * env;
+    for (let j = 0; j < PROBE_ARTICULATORS.length; j++) {
+      const k = PROBE_ARTICULATORS[j];
+      t[o + F.jaw + j] = f[k] + (a[k] - f[k]) * u;
+    }
+  }
+
   /** A keyframe interval starts: the articulators to its end, then the shape there. */
   private interval(): void {
     const sr = this.sr;
+    if (this.probeSlot !== 0) this.keyFrom.set(this.art);
     this.abdAt[0] = this.abdAt[STEPS];
     this.cloAt[0] = this.cloAt[STEPS];
     this.stfAt[0] = this.stfAt[STEPS];
@@ -928,6 +971,8 @@ const PARAMS: ParamSpec[] = [
   { name: 'tuning', min: 0, max: 1, default: 0 },
   { name: 'nextIn', min: 0, max: 1, default: 0, unit: 's' },
   { name: 'nextPhoneme', min: 0, max: PHONEMES - 1, default: 0 },
+  /* the articulator probe's slot (probe/tap.ts), 0 off; articulatorProbe() sets it */
+  { name: 'probe', min: 0, max: PROBE_SLOTS, default: 0 },
 ];
 
 export const vocalEngine: EngineDef = {

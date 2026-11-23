@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.8.0
+
+- **The articulator probe.** `articulatorProbe(b, singer, { rate })` reads the voice's mouth as the
+  audio plays: jaw, lip aperture, protrusion and width, labiodental contact, tongue body and tip,
+  velum, voicing amplitude and the sound being made, at 1 to 375 frames per second, each stamped
+  with the AudioContext time of the audio it describes. `probe.heard()` gives the frame coming out
+  of the speakers now, `at(t)` any time, `frames(since)` a run of them. Frames go through a
+  SharedArrayBuffer on a cross-origin isolated page and through the worklet node's port elsewhere,
+  `file://` included. Off by default: without a probe the engine compares one number per process
+  call and sends nothing. The frame layout is versioned (`ARTICULATOR_PROBE_VERSION`, 1).
+- **Speech rendered offline.** `renderSpeech(text, opts)` from `bellows-voice/engine` renders without
+  an AudioContext, in Node, a worker or a page: mono samples, `wav()`, the timed phoneme spans and
+  the articulator track at the live probe's frame times. The same seed gives the same bytes.
+- The engine has a `probe` parameter (the probe's slot, 0 off), which `articulatorProbe()` sets.
+- `speak()` and `renderSpeech()` share one text-to-notes step (`src/speech-line.ts`); what `speak()`
+  posts is unchanged.
+- `examples/face.html` (a face from a live probe) and `examples/render-speech.mjs` (a WAV and a JSON
+  of spans and track). HOW-IT-WORKS section 14 has the design and measurements.
+
+
 ## 0.7.3
 
 From a second audit (a Fable review of 0.7.2):

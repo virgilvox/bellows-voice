@@ -11,9 +11,8 @@
 import { EventKind, listEngines, type Bellows, type BusHandle, type FxInput, type Instrument, type KernelEvent, type NoteOptions, type NoteSpec, type NoteValue, type Scale, type TimeValue } from 'bellowsjs';
 import type { PronouncingDictionary, SungPlan, Syllable } from './lyrics/types';
 import { lyricsToSyllables } from './lyrics/read';
-import { IPA_SPAN, spellOut } from './lyrics/numbers';
-import { resolveAccent, type Accent } from './lyrics/accents';
-import { speechPlan } from './lyrics/speech';
+import { type Accent } from './lyrics/accents';
+import { SPOKEN_CONSONANT_SCALE, speechLine } from './speech-line';
 import { BEAT_LEAD_IN, beatLine, type BeatPattern, type BeatTiming } from './lyrics/beat';
 import { SHAPE_PRESETS, VOICE_SETTINGS } from './engines/vocal-settings';
 import { planSung, type PlanSungOptions } from './lyrics/sing';
@@ -71,8 +70,6 @@ export interface SpeakOptions {
   numbers?: boolean;
 }
 
-/* A phrase: a run of text, IPA between slashes kept whole, and its closing marks. */
-const PHRASE = new RegExp('(?:' + IPA_SPAN + '|[^.!?;:,\\n])+[.!?;:,\\n]*', 'gu');
 
 /** beatbox()'s options: the pattern's timing (bpm, swing, repeat), when, the hum's pitch and the breath. */
 export interface BeatboxOptions extends BeatTiming {
@@ -211,32 +208,18 @@ export class Singer {
    */
   speak(text: string, opts: SpeakOptions = {}): SingResult {
     if (this.instrument.disposed) return { ...EMPTY };
-    const accent = resolveAccent(opts.accent ?? this.accent);
-    const syllables: Syllable[] = [];
-    const questions: boolean[] = [];
-    // numbers as words first, so "$5.50" and "10:30" are not split at their marks; then each
-    // sentence or clause is a phrase, its closing mark setting its tune, IPA kept whole
-    const words = opts.numbers === false ? text : spellOut(text);
-    for (const m of words.matchAll(PHRASE)) {
-      const part = lyricsToSyllables(m[0], {
-        numbers: false,
-        dictionary: opts.dictionary ?? this.dictionary ?? undefined,
-        allophones: opts.allophones,
-        accent,
-        // running speech: weak function words
-        reduce: true,
-      });
-      if (part.length === 0) continue;
-      part[part.length - 1].phraseEnd = true;
-      syllables.push(...part);
-      questions.push(m[0].includes('?'));
-    }
-    const plan = speechPlan(syllables, { hz: opts.hz ?? this.speechHz, rate: opts.rate, prosody: accent.prosody, breath: opts.breath }, questions);
-    const notes: SingNote[] = plan.notes.map((n) =>
-      n.rest ? { note: null, dur: { seconds: n.dur } } : { note: { hz: n.hz }, dur: { seconds: n.dur } },
-    );
+    const line = speechLine(text, {
+      dictionary: opts.dictionary ?? this.dictionary ?? undefined,
+      accent: opts.accent ?? this.accent,
+      hz: opts.hz ?? this.speechHz,
+      rate: opts.rate,
+      allophones: opts.allophones,
+      breath: opts.breath,
+      numbers: opts.numbers,
+    });
+    const notes: SingNote[] = line.notes.map((n) => ({ note: n.hz === null ? null : { hz: n.hz }, dur: { seconds: n.dur } }));
     // spoken consonants at their full spoken length, where sung ones are shortened (durations.ts)
-    return this.post(plan.syllables, notes, { at: opts.at }, { consonantScale: 1 });
+    return this.post(line.syllables, notes, { at: opts.at }, { consonantScale: SPOKEN_CONSONANT_SCALE });
   }
 
   /**

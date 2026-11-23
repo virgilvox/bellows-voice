@@ -1382,3 +1382,38 @@ Three gates stay out, each for a physical reason that needs its own change rathe
 - a voiceless /t/'s seal hisses at -13.7 dB against -15: the glottis opens 25 percent into the stop,
   and with the flow no longer starved the narrowing before the seal is a fricative; the abduction
   should wait for the seal.
+
+## 14. Reading the mouth back out (2026-11-23)
+
+The engine's articulators lived only on the audio thread. `TractModel` (`src/view/tract.ts`) follows
+the plan on the main thread with its own follower and no planner, so it has no gesture lead or
+anticipatory coarticulation and drifts from what the engine sounds on fast consonants. Two ways out
+were added, sharing one rule.
+
+**The tap.** A `probe` engine parameter (a slot, 1 to 8, default 0) makes a voice write 13 numbers to
+a row of `PROBE_TAP` (`src/probe/tap.ts`) at the end of each process call: a write count, the
+`phoneme` it is sounding, `air.voicing` times the envelope, and ten articulators (jaw, lip aperture,
+protrusion and width, labiodental, tongue body x and y, tip x and y, velum). The articulators run to
+the end of each keyframe interval before it is heard, so the row is not the cascade's current values
+but the interpolation the drive uses for the tract's shape: `keyFrom + (art - keyFrom) u`, with
+`u = blockInInterval / 16`. What is reported is what is sounding, planner lead included, nothing
+ahead. With slot 0 the voice compares one number per process call and writes nothing (gated:
+`test/integration/probe.test.ts`, the tap is unchanged by a render).
+
+**The sampler.** `ProbeSampler` (`src/probe/sampler.ts`) runs once per render quantum after the
+kernel. Frame k is due at sample `ceil(k sampleRate / rate)` and is taken at the first quantum end at
+or after it, stamped with that end's time; `sounding` is whether the write count moved during that
+quantum. In the worklet it runs in `ProbeProcessor` (`src/probe/processor.ts`), registered by the
+plugin's script beside the engine, so both see the same tap; `articulatorProbe()` feeds it from
+bellows' analyser so the browser renders it after the kernel. Frames go to the main thread through a
+SharedArrayBuffer ring when the page is cross-origin isolated (no messages, no allocation) and one
+port message per frame otherwise. `renderSpeech()` (`src/offline.ts`) runs the same sampler from
+`renderOffline`'s `onBlock`, so a live probe and an offline render of one score give the same frames.
+
+**Measured** (Node 22, this laptop, 2026-11-23): the generated worklet script's engine and probe
+against `renderSpeech` from source on the same score: frame times identical, every value identical
+(difference 0; the test gates 1e-6), audio identical. Port and shared ring identical. Cost with the
+probe on, 8.1 s of speech rendered seven times each way: medians 1.28 s on and 1.34 s off, inside the
+run-to-run spread (1.07 to 1.82 s); the sampler alone 0.11 µs per quantum. Not measured: the cost in
+a browser's audio thread, the port path's message rate under load, how well a face driven by these
+numbers reads to a viewer.
